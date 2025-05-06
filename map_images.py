@@ -33,7 +33,7 @@ def create_leaseid_df():
     engine = create_alchemy_engine()
 
     print(f"Start: Gathering LeaseIDs {datetime.now()}")
-    query = ("SELECT * FROM countyScansTitle.dbo.LND_6732_SRC_20250414 "
+    query = ("SELECT * FROM countyScansTitle.dbo.LND_6732_DEST_20250414 "
              "ORDER BY leaseid DESC")
 
     df = pd.read_sql(query, engine)
@@ -55,7 +55,8 @@ def get_page_count(s3, bucket_name, source_path):
     page_count = len(reader.pages)
     return page_count
 
-
+# TODO Copy image from source_path to destination_path
+# TODO Insert record into tblS3Image
 def process_batch(batch):
     config = Config(
         retries={
@@ -127,8 +128,8 @@ def create_batches_from_dataframe(
         yield batch_records
 
 
-# TODO Make sure to populate the S3storagePath table talk with Ty
-def query_s3(df_lease_ids, max_workers=7, max_timeout=None):
+
+def map_images(df_lease_ids, max_workers=7, max_timeout=None):
     # TODO Need to gather the dataset ID value by querying the S3 bucket, follow the same pattern to gather the
     """
     Process the dataframe using Pebble for multiprocessing.
@@ -209,7 +210,7 @@ if __name__ == "__main__":
         df_lease_ids = create_leaseid_df()
 
         print("Start: Querying S3")
-        query_s3(df_lease_ids, max_workers=8)
+        map_images(df_lease_ids, max_workers=8)
         print("Complete: Querying S3")
     except Exception as e:
         print(f"Error: {e}")

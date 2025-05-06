@@ -20,7 +20,7 @@ IF OBJECT_ID('tempdb..#LND_6732_cst_values', 'U') IS NOT NULL
 
 -- Create CST values temp table
 SELECT 
-    tr.recordID,
+    LOWER(tr.recordID) AS recordID,
     tr.recordNumber,
     CONVERT(varchar, tr.fileDate, 23) AS fileDate,
 	CASE
@@ -49,7 +49,7 @@ IF OBJECT_ID('tempdb..#LND_6732_div1_values', 'U') IS NOT NULL
 
 SELECT 
     tll.LeaseID,
-	NEWID() AS div1_generated_recordid,
+	LOWER(NEWID()) AS div1_generated_recordid,
 	tll.instrument,
     tll.recordNumber,
     CONVERT(varchar, tll.recordDate, 23) AS RecordDate,
@@ -119,7 +119,7 @@ BEGIN TRAN;
 -- CATEGORY 1: recordID exists in tblrecord but NOT in tblexportlog
 -- 56,157 records
 SELECT 
-    cst.recordID AS cst_recordID,
+    LOWER(cst.recordID) AS cst_recordID,
     cst.recordNumber AS cst_recordno,
     div1.LeaseID AS div1_leaseid,
     div1.recordNumber AS div1_recordno,
@@ -185,7 +185,7 @@ WHERE CONVERT(varchar, _CreatedDateTime, 23) = CONVERT(varchar, GETDATE(), 23)
 -- CATEGORY 2: recordid exists in tblrecord and tblexportlog with NULL LeaseID and DIV1 Match
 -- 31,811 records
 SELECT
-    cst.recordID AS cst_recordID,
+    LOWER(cst.recordID) AS cst_recordID,
     cst.recordNumber AS cst_recordno,
     div1.LeaseID AS div1_leaseid,
     div1.recordNumber AS div1_recordno,
@@ -390,9 +390,51 @@ SELECT
 	CASE
 		WHEN div1.StateID = 1
 		THEN 48
+		WHEN div1.StateID = 2
+		THEN 22
+		WHEN div1.StateID = 3
+		THEN 55
 		WHEN div1.StateID = 4
 		THEN 35
-	END AS stateID,									-- stateID, Default Value 
+		WHEN div1.StateID = 5
+		THEN 40
+		WHEN div1.StateID = 60
+		THEN 1
+		WHEN div1.StateID = 62
+		THEN 5
+		WHEN div1.StateID = 63
+		THEN 7
+		WHEN div1.StateID = 64
+		THEN 8
+		WHEN div1.StateID = 66
+		THEN 10
+		WHEN div1.StateID = 74
+		THEN 20
+		WHEN div1.StateID = 79
+		THEN 26
+		WHEN div1.StateID = 81
+		THEN 28
+		WHEN div1.StateID = 83
+		THEN 30
+		WHEN div1.StateID = 85
+		THEN 32
+		WHEN div1.StateID = 90
+		THEN 38
+		WHEN div1.StateID = 91
+		THEN 39
+		WHEN div1.StateID = 92
+		THEN 41
+		WHEN div1.StateID = 93
+		THEN 43
+		WHEN div1.StateID = 96
+		THEN 46
+		WHEN div1.StateID = 98
+		THEN 49
+		WHEN div1.StateID = 101
+		THEN 52
+		WHEN div1.StateID = 102
+		THEN 53
+	END AS stateID,									-- stateID, Default Value
 	div1.volume,									-- Volume, DIV1
     div1.page,										-- Page, DIV1
 	10,   											-- outsourceID, Default Value
@@ -480,25 +522,12 @@ SELECT
 		THEN 0
 		ELSE 1
 	END AS Extension,								-- Extension, DIV1
-	CASE
-		WHEN div1.extensionTermMonths IS NULL
-		THEN NULL
-		WHEN div1.extensionTermMonths = 0
-		THEN 0
-		WHEN div1.extensionTermMonths = 12
-		THEN 1
-		WHEN div1.extensionTermMonths = 24
-		THEN 2
-		WHEN div1.extensionTermMonths = 36
-		THEN 3
-		WHEN div1.extensionTermMonths = 48
-		THEN 4
-		WHEN div1.extensionTermMonths = 60
-		THEN 5
-		WHEN div1.extensionTermMonths = 72
-		THEN 6
-	END AS ExtensionLength,							-- ExtensionLength, DIV1
-    NULL,											-- ExtensionType, Default Value
+	div1.extensionTermMonths AS ExtensionLength,    -- ExtensionLength, DIV1
+    CASE
+        WHEN div1.extensionTermMonths >= 1
+        THEN 'Months'
+		ELSE NULL
+	END AS ExtensionType,						    -- ExtensionType, Default Value
     CAST(div1.extensionBonus AS INT),				-- ExtensionBonus, DIV1
     div1.isBlm, 									-- ExtensionBLM, DIV1
     div1.isState, 									-- ExtensionState, DIV1
@@ -532,7 +561,6 @@ SELECT
 		WHEN div1.TermMonths = 144
 		THEN 12
 	END AS TermLength,								-- TermLength, DIV1
-    -- Check the GROUPBY for TermLength, ExtensionLength
 	0,												-- TermType, Default Value
     0,												-- TermAvailable, Default Value
     CAST(div1.ROYALTY AS NUMERIC(5,4)),				-- RoyaltyAmount, DIV1
