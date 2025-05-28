@@ -1234,3 +1234,96 @@ JOIN #LND_6732_modded_div1_values div1
 ORDER BY NEWID(); -- Random sorting
 */
 -- End QC Queries
+
+-- Create a query to match all records in DIV1 that aren't present in tblexportlog or tblrecord
+-- This number increased from 3,437 -> 3,962, I'm guessing records are still being added in Dev
+-- 4,875 5/27/2025
+IF OBJECT_ID('tempdb..#TempLegalLease', 'U') IS NOT NULL
+    DROP TABLE tempdb..#TempLegalLease;
+
+-- Create temporary table #TempLegalLease
+SELECT *
+INTO #TempLegalLease
+FROM [AUS2-DIV1-DDB01].[div1_daily].[dbo].[tblLegalLease];
+
+-- Create an index on the leaseID column in #TempLegalLease
+CREATE INDEX IX_TempLegalLease_LeaseID ON #TempLegalLease(LeaseID);
+
+-- Leases in tblLegalLease not present in tblExportLog
+SELECT ll.*
+FROM #TempLegalLease ll
+LEFT JOIN countyScansTitle.dbo.tblExportLog el ON el.LeaseID = ll.LeaseID
+WHERE el.LeaseID IS NULL;
+
+
+-- Investigate Leases In tblLegalLease Not Present in tblExportLog
+-- Review 
+SELECT *
+FROM #TempLegalLease
+WHERE leaseID IN (SELECT ll.leaseid
+				  FROM #TempLegalLease ll
+				  LEFT JOIN countyScansTitle.dbo.tblExportLog el ON el.LeaseID = ll.LeaseID
+				  WHERE el.LeaseID IS NULL)
+ORDER BY created ASC
+
+
+SELECT *
+FROM countyScansTitle.dbo.tblexportlog
+WHERE CAST(_CreatedDateTime AS DATE) = '2025-05-06'
+-- 2025-05-06 11:57:09.603 -> 2025-05-06 13:28:48.737
+
+-- Basic Counts
+-- 4,852,643
+SELECT COUNT(*)
+FROM #TempLegalLease
+
+-- 4,852,387
+SELECT COUNT(DISTINCT LeaseID)
+FROM countyScansTitle.dbo.tblexportLog
+
+
+-- tblrecord Review
+-- 2,774,882 DISTINCT Leases IN tblrecord + New statusID (3,714,795) = 6,489,677
+-- Check this against the counts in Prod
+SELECT COUNT(DISTINCT recordid)
+FROM countyScansTitle.dbo.tblrecord
+WHERE InstrumentTypeID IN ('MOGL','OGL','OGLAMD','POGL','OGLEXT','ROGL')
+  AND statusID IN (4,10,16,18,90);
+
+-- 3,751,610 records
+SELECT COUNT(*), remarks
+FROM countyScansTitle.dbo.tblrecord
+WHERE remarks LIKE ('%LND-6732%')
+GROUP BY remarks
+
+
+-- This covers tblexportlog, review tblrecord
+-- Shows 56,142 which lines up with the sql files 56,142
+SELECT *
+FROM countyScansTitle.dbo.tblexportLog
+WHERE ZipName = 'LND-6732(1)'
+ORDER BY _ModifiedDateTime DESC
+
+-- Shows 24,810, which lines up with the sql files 24,810
+-- LND-6732(2)
+SELECT *
+FROM countyScansTitle.dbo.tblexportLog
+WHERE ZipName NOT LIKE 'LND-6732%'
+AND  CAST(_ModifiedDateTime AS DATE) = '2025-05-06'
+ORDER BY _ModifiedDateTime DESC
+
+-- Shows 3,751,628, which lines up with the sql files 3,751,628 records
+SELECT *
+FROM countyScansTitle.dbo.tblexportLog
+WHERE ZipName = 'LND-6732(3)'
+ORDER BY _ModifiedDateTime DESC
+
+
+-- Query to see values in tblexportlog not present in tblrecord
+-- 56,160 need to find out why they aren't in tblrecord?
+SELECT *
+FROM countyScansTitle.dbo.tblexportlog
+WHERE recordid NOT IN (SELECT recordid
+					   FROM countyScansTitle.dbo.tblrecord
+					   WHERE CAST(_CreatedDateTime AS DATE) = '2025-05-06')
+AND CAST(_CreatedDateTime AS DATE) = '2025-05-06'

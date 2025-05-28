@@ -17,19 +17,19 @@ GO
 SET XACT_ABORT ON;
 BEGIN TRAN;
 
-IF OBJECT_ID('countyScansTitle.dbo.LND_6836_tbldeedReferenceVolumePage', 'U') IS NOT NULL
-    DROP TABLE countyScansTitle.dbo.LND_6836_tbldeedReferenceVolumePage;
+--IF OBJECT_ID('countyScansTitle.dbo.LND_6836_tbldeedReferenceVolumePage', 'U') IS NOT NULL
+--    DROP TABLE countyScansTitle.dbo.LND_6836_tbldeedReferenceVolumePage;
 
 -- 3,802,980 Records are updated in tblrecord
-SELECT LOWER(tr.recordID) AS recordID,
-	tll.deedVol AS drVolume,
-	NULLIF(LTRIM(RTRIM(tll.deedVol)), 'null') AS sani_drVolume,
-	tll.deedPg AS drPage,
-	NULLIF(LTRIM(RTRIM(tll.deedPg)), 'null') AS sani_deedPg,
+DECLARE @currentDateTime DATETIME = GETDATE();
+SELECT 
+    LOWER(tr.recordID) AS recordID,
+	NULLIF(LTRIM(RTRIM(tll.deedVol)), 'null') AS drVolume,
+	NULLIF(LTRIM(RTRIM(tll.deedPg)), 'null') AS drPage,
 	NULL AS drbookType,
-	GETDATE() AS _CreatedDateTime,
+	@currentDateTime AS _CreatedDateTime,
 	'LND-6836' AS _CreatedBy,
-	GETDATE() AS _ModifiedDateTime,
+	@currentDateTime AS _ModifiedDateTime,
 	NULL AS Consideration,
 	LOWER(NEWID()) AS priorrefid,
 	0 AS IsDeleted
@@ -38,7 +38,7 @@ FROM countyScansTitle.dbo.tblrecord tr
 INNER JOIN countyScansTitle.dbo.tblExportLog tel ON tr.recordID = tel.recordID
 INNER JOIN [AUS2-DIV1-DDB01].[div1_daily].[dbo].[tblLegalLease] tll ON tel.LeaseID = tll.LeaseID
 WHERE tll.deedVol IS NOT NULL AND tll.deedVol != '' AND tll.deedPg != '' AND tll.deedPg IS NOT NULL
-AND CONVERT(varchar, tr.receivedDate, 23) = '2025-04-07';
+AND CONVERT(varchar, tr.receivedDate, 23) = '2025-05-06';
 
 -- Rollback the transaction (for testing purposes)
 ROLLBACK TRAN;
@@ -49,7 +49,7 @@ ROLLBACK TRAN;
 SELECT @@TRANCOUNT, XACT_STATE();
 
 
--- Expected total count, why are there only half the original values?
+-- QA Section
 -- PriorReference count is lowered because of filtering the EMPTY / NULL records
 /*
 To debug why the query only returns 1.2 million records instead of the expected 3.8 million records, you can create a query that analyzes each filtering condition (`WHERE`, `INNER JOIN`, etc.) and identifies which step is reducing the record count. The following query will help break down and count records at each stage of filtering:

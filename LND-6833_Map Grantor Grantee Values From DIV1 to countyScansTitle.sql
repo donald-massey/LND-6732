@@ -17,60 +17,105 @@ GO
 SET XACT_ABORT ON;
 BEGIN TRAN;
 
+-- Check that records not updated are correct
+
 /*
+IF OBJECT_ID('tempdb.dbo.#TempLegalLease', 'U') IS NOT NULL
+    DROP TABLE tempdb.dbo.#TempLegalLease;
+
+SELECT *
+INTO #TempLegalLease
+FROM [AUS2-DIV1-DDB01].[div1_daily].[dbo].[tblLegalLease];
+
+CREATE INDEX IX_TempLegalLease_LeaseID ON #TempLegalLease(LeaseID);
+
+IF OBJECT_ID('tempdb.dbo.#TempLeaseGrantor', 'U') IS NOT NULL
+    DROP TABLE tempdb.dbo.#TempLeaseGrantor
+
+SELECT *
+INTO #TempLeaseGrantor
+FROM [AUS2-DIV1-DDB01].[div1_daily].[dbo].[tblLeaseGrantor]
+WHERE GrantorNAME != '';
+
+CREATE INDEX IX_TempLeaseGrantor_GrantorID ON #TempLeaseGrantor(GrantorID);
+
+IF OBJECT_ID('tempdb.dbo.#TempLeaseGrantee', 'U') IS NOT NULL
+    DROP TABLE tempdb.dbo.#TempLeaseGrantee
+
+SELECT *
+INTO #TempLeaseGrantee
+FROM [AUS2-DIV1-DDB01].[div1_daily].[dbo].[tblLeaseGrantee]
+WHERE GranteeNAME != '';
+
+CREATE INDEX IX_TempLeaseGrantee_GranteeID ON #TempLeaseGrantee(GranteeID);
+
+
 IF OBJECT_ID('countyScansTitle.dbo.LND_6833_tblgrantorGrantee', 'U') IS NOT NULL
     DROP TABLE countyScansTitle.dbo.LND_6833_tblgrantorGrantee;
 
--- Optimized Query
-WITH GrantorData AS (
+
+-- Create a query to identify the records HAVING COUNT(*) > 2, that will identify the many:1 matches
+-- Create a query to do a groupBY recordID to see if that seems off?
+-- Create NULLIF for g* columns 
+DECLARE @currentDateTime DATETIME = GETDATE();
+-- 3,751,610 Records
+WITH tblRecord AS (
+	SELECT
+		LOWER(tr.recordID) AS recordID,
+		tel.LeaseID
+	FROM countyScansTitle.dbo.tblrecord tr
+	LEFT JOIN countyScansTitle.dbo.tblExportLog tel ON tel.recordID = tr.recordID
+	WHERE CONVERT(varchar, tr.receivedDate, 23) = '2025-05-06'
+),
+-- 3,911,697 Records
+GrantorData AS (
     SELECT 
-        LOWER(tr.recordID) AS recordID,
+        tr.recordID,
+		tlg.GrantorID,
         'grantor' AS recordType,
-        tor.GrantorNAME AS gName,
-        tor.ADDRESS AS gAddress,
-        tor.ZIP AS gZip,
-        tor.CITY AS gCity,
+        tlg.GrantorNAME AS gName,
+        tlg.ADDRESS AS gAddress,
+        tlg.ZIP AS gZip,
+        tlg.CITY AS gCity,
         tls.StateID AS StateID,
-        '2025-04-22 13:04:58' AS _CreatedDateTime,
+        @currentDateTime AS _CreatedDateTime,
         'donald-massey' AS _CreatedBy,
-        '2025-04-22 13:04:58' AS _ModifiedDateTime,
+        @currentDateTime AS _ModifiedDateTime,
         'donald-massey' AS _ModifiedBy,
         NULL AS interestedAssigned,
         0 AS IsDeleted,
         0 AS IsPrimary
-    FROM countyScansTitle.dbo.tblrecord tr
-    INNER JOIN countyScansTitle.dbo.tblExportLog tel ON tr.recordID = tel.recordID
-    INNER JOIN [AUS2-DIV1-DDB01].[div1_daily].[dbo].[tblLegalLease] tll ON tel.LeaseID = tll.LeaseID
-    INNER JOIN [AUS2-DIV1-DDB01].[div1_daily].[dbo].[tblLeaseGrantor] tor ON tll.GrantorID = tor.GrantorID
-    INNER JOIN countyScansTitle.dbo.tbllookupStates tls ON tls.StateAbbreviation = tor.STATE
-    WHERE tor.GrantorNAME != '' AND tr.receivedDate = '2025-04-07'
+    FROM #TempLeaseGrantor tlg
+	INNER JOIN #TempLegalLease tll ON tlg.GrantorID = tll.GrantorID
+	INNER JOIN tblRecord tr ON tll.LeaseID = tr.LeaseID
+    LEFT JOIN countyScansTitle.dbo.tbllookupStates tls ON tlg.STATE = tls.StateAbbreviation
 ),
+-- 3,810,407 Records
 GranteeData AS (
     SELECT 
-        LOWER(tr.recordID) AS recordID,
+        tr.recordID,
         'grantee' AS recordType,
         tee.GranteeNAME AS gName,
         tee.ADDRESS AS gAddress,
         tee.ZIP AS gZip,
         tee.CITY AS gCity,
         tls.StateID AS StateID,
-        '2025-04-22 13:04:58' AS _CreatedDateTime,
+        @currentDateTime AS _CreatedDateTime,
         'donald-massey' AS _CreatedBy,
-        '2025-04-22 13:04:58' AS _ModifiedDateTime,
+        @currentDateTime AS _ModifiedDateTime,
         'donald-massey' AS _ModifiedBy,
         NULL AS interestedAssigned,
         0 AS IsDeleted,
         0 AS IsPrimary
-    FROM countyScansTitle.dbo.tblrecord tr
-    INNER JOIN countyScansTitle.dbo.tblExportLog tel ON tr.recordID = tel.recordID
-    INNER JOIN [AUS2-DIV1-DDB01].[div1_daily].[dbo].[tblLegalLease] tll ON tel.LeaseID = tll.LeaseID
-    INNER JOIN [AUS2-DIV1-DDB01].[div1_daily].[dbo].[tblLeaseGrantee] tee ON tll.GranteeID = tee.GranteeID
-    INNER JOIN countyScansTitle.dbo.tbllookupStates tls ON tls.StateAbbreviation = tee.STATE
-    WHERE tee.GranteeNAME != '' AND tr.receivedDate = '2025-04-07'
+    FROM #TempLeaseGrantee tee
+	INNER JOIN #TempLegalLease tll ON tee.GranteeID = tll.GranteeID
+	INNER JOIN tblRecord tr ON tll.LeaseID = tr.LeaseID
+    LEFT JOIN countyScansTitle.dbo.tbllookupStates tls ON tls.StateAbbreviation = tee.STATE
 )
-INSERT INTO countyScansTitle.dbo.LND_6833_tblgrantorGrantee
-SELECT * FROM GrantorData
-UNION ALL
+SELECT *
+INTO countyScansTitle.dbo.LND_6833_tblgrantorGrantee
+FROM GrantorData
+UNION
 SELECT * FROM GranteeData;
 */
 
@@ -82,99 +127,74 @@ ROLLBACK TRAN;
 -- Check transaction count and state
 SELECT @@TRANCOUNT, XACT_STATE();
 
--- Gather the count of recordID and see if that's off
--- Gather a null count comparison of this same query to see if gName gAddress, gZip, gCity have excessive nulls
+
+-- QA Section
+-- tblRecord Total Records: 3,751,610
+
+-- GrantorData Total Records: 3,911,697
+-- Grantor Updates: 3,911,697
+
+-- GranteeData Total Records: 3,810,407
+-- Grantee Updates: 3,810,407
 
 
--- Get the total modified record Counts
--- 3,802,980 Records are updated in tblrecord
--- 4,969,884 Grantor Count
+-- NULL Counts
 SELECT 
-    COUNT(DISTINCT LOWER(tr.recordID)) AS unique_recordid_count, 'grantor_count' AS rec_count
-FROM countyScansTitle.dbo.tblrecord tr
-INNER JOIN countyScansTitle.dbo.tblExportLog tel ON tr.recordID = tel.recordID
-INNER JOIN [AUS2-DIV1-DDB01].[div1_daily].[dbo].[tblLegalLease] tll ON tel.LeaseID = tll.LeaseID
-INNER JOIN [AUS2-DIV1-DDB01].[div1_daily].[dbo].[tblLeaseGrantor] tor ON tll.GrantorID = tor.GrantorID
-WHERE GrantorNAME != '' AND CONVERT(varchar, tr.receivedDate, 23) = '2025-04-07'
+    SUM(CASE WHEN recordID IS NULL THEN 1 ELSE 0 END) AS recordID_Null_Count,
+    SUM(CASE WHEN recordID IS NOT NULL THEN 1 ELSE 0 END) AS recordID_NotNull_Count,
+	SUM(CASE WHEN recordType IS NULL THEN 1 ELSE 0 END) AS recordType_Null_Count,
+    SUM(CASE WHEN recordType IS NOT NULL THEN 1 ELSE 0 END) AS recordType_NotNull_Count,
+    SUM(CASE WHEN gName IS NULL THEN 1 ELSE 0 END) AS gName_Null_Count,
+    SUM(CASE WHEN gName IS NOT NULL THEN 1 ELSE 0 END) AS gName_NotNull_Count,
+    SUM(CASE WHEN gAddress IS NULL THEN 1 ELSE 0 END) AS gAddress_Null_Count,
+    SUM(CASE WHEN gAddress IS NOT NULL THEN 1 ELSE 0 END) AS gAddress_NotNull_Count,
+    SUM(CASE WHEN gZip IS NULL THEN 1 ELSE 0 END) AS gZip_Null_Count,
+    SUM(CASE WHEN gZip IS NOT NULL THEN 1 ELSE 0 END) AS gZip_NotNull_Count,
+    SUM(CASE WHEN gCity IS NULL THEN 1 ELSE 0 END) AS gCity_Null_Count,
+    SUM(CASE WHEN gCity IS NOT NULL THEN 1 ELSE 0 END) AS gCity_NotNull_Count,
+    SUM(CASE WHEN StateID IS NULL THEN 1 ELSE 0 END) AS StateID_Null_Count,
+    SUM(CASE WHEN StateID IS NOT NULL THEN 1 ELSE 0 END) AS StateID_NotNull_Count
+FROM countyScansTitle.dbo.LND_6833_tblgrantorGrantee
+WHERE recordType = 'grantor'
 
-UNION ALL
-
--- 4,969,920 Grantee Count
-SELECT 
-    COUNT(DISTINCT LOWER(tr.recordID)) AS unique_recordid_count, 'grantee_count' AS rec_count
-FROM countyScansTitle.dbo.tblrecord tr
-INNER JOIN countyScansTitle.dbo.tblExportLog tel ON tr.recordID = tel.recordID
-INNER JOIN [AUS2-DIV1-DDB01].[div1_daily].[dbo].[tblLegalLease] tll ON tel.LeaseID = tll.LeaseID
-INNER JOIN [AUS2-DIV1-DDB01].[div1_daily].[dbo].[tblLeaseGrantee] tee ON tll.GranteeID = tee.GranteeID
-WHERE GranteeNAME != '' AND CONVERT(varchar, tr.receivedDate, 23) = '2025-04-07';
-
-
-
--- NULL Count
-SELECT 
-    LOWER(tr.recordID) AS recordID,
-    'grantor' AS recordType,
-    GrantorNAME AS gName,
-    tor.ADDRESS AS gAddress,
-    tor.ZIP AS gZip,
-    tor.CITY AS gCity,
-    tr.StateID AS StateID,
-    '2025-04-22 13:04:58' AS _CreatedDateTime,
-    'donald-massey' AS _CreatedBy,
-    '2025-04-22 13:04:58' AS _ModifiedDateTime,
-    'donald-massey' AS _ModifiedBy,
-    NULL AS interestedAssigned,
-    0 AS IsDeleted,
-    0 AS IsPrimary,
-    COUNT(CASE WHEN GrantorNAME IS NULL THEN 1 ELSE NULL END) AS GrantorName_Null_Count,
-    COUNT(CASE WHEN GrantorNAME IS NOT NULL THEN 1 ELSE NULL END) AS GrantorName_NotNull_Count,
-    COUNT(CASE WHEN tor.ADDRESS IS NULL THEN 1 ELSE NULL END) AS Address_Null_Count,
-    COUNT(CASE WHEN tor.ADDRESS IS NOT NULL THEN 1 ELSE NULL END) AS Address_NotNull_Count,
-    COUNT(CASE WHEN tor.ZIP IS NULL THEN 1 ELSE NULL END) AS Zip_Null_Count,
-    COUNT(CASE WHEN tor.ZIP IS NOT NULL THEN 1 ELSE NULL END) AS Zip_NotNull_Count,
-    COUNT(CASE WHEN tor.CITY IS NULL THEN 1 ELSE NULL END) AS City_Null_Count,
-    COUNT(CASE WHEN tor.CITY IS NOT NULL THEN 1 ELSE NULL END) AS City_NotNull_Count,
-    COUNT(CASE WHEN tr.StateID IS NULL THEN 1 ELSE NULL END) AS StateID_Null_Count,
-    COUNT(CASE WHEN tr.StateID IS NOT NULL THEN 1 ELSE NULL END) AS StateID_NotNull_Count
-FROM countyScansTitle.dbo.tblrecord tr
-INNER JOIN countyScansTitle.dbo.tblExportLog tel ON tr.recordID = tel.recordID
-INNER JOIN [AUS2-DIV1-DDB01].[div1_daily].[dbo].[tblLegalLease] tll ON tel.LeaseID = tll.LeaseID
-INNER JOIN [AUS2-DIV1-DDB01].[div1_daily].[dbo].[tblLeaseGrantor] tor ON tll.GrantorID = tor.GrantorID
-WHERE GrantorNAME != ''
-GROUP BY 
-    LOWER(tr.recordID), GrantorNAME, tor.ADDRESS, tor.ZIP, tor.CITY, tr.StateID
-
-UNION ALL
 
 SELECT 
-    LOWER(tr.recordID) AS recordID,
-    'grantee' AS recordType,
-    GranteeNAME AS gName,
-    tee.ADDRESS AS gAddress,
-    tee.ZIP AS gZip,
-    tee.CITY AS gCity,
-    tr.StateID AS StateID,
-    '2025-04-22 13:04:58' AS _CreatedDateTime, 
-    'donald-massey' AS _CreatedBy,
-    '2025-04-22 13:04:58' AS _ModifiedDateTime,
-    'donald-massey' AS _ModifiedBy,
-    NULL AS interestedAssigned,
-    0 AS IsDeleted,
-    0 AS IsPrimary,
-    COUNT(CASE WHEN GranteeNAME IS NULL THEN 1 ELSE NULL END) AS GranteeName_Null_Count,
-    COUNT(CASE WHEN GranteeNAME IS NOT NULL THEN 1 ELSE NULL END) AS GranteeName_NotNull_Count,
-    COUNT(CASE WHEN tee.ADDRESS IS NULL THEN 1 ELSE NULL END) AS Address_Null_Count,
-    COUNT(CASE WHEN tee.ADDRESS IS NOT NULL THEN 1 ELSE NULL END) AS Address_NotNull_Count,
-    COUNT(CASE WHEN tee.ZIP IS NULL THEN 1 ELSE NULL END) AS Zip_Null_Count,
-    COUNT(CASE WHEN tee.ZIP IS NOT NULL THEN 1 ELSE NULL END) AS Zip_NotNull_Count,
-    COUNT(CASE WHEN tee.CITY IS NULL THEN 1 ELSE NULL END) AS City_Null_Count,
-    COUNT(CASE WHEN tee.CITY IS NOT NULL THEN 1 ELSE NULL END) AS City_NotNull_Count,
-    COUNT(CASE WHEN tr.StateID IS NULL THEN 1 ELSE NULL END) AS StateID_Null_Count,
-    COUNT(CASE WHEN tr.StateID IS NOT NULL THEN 1 ELSE NULL END) AS StateID_NotNull_Count
-FROM countyScansTitle.dbo.tblrecord tr
-INNER JOIN countyScansTitle.dbo.tblExportLog tel ON tr.recordID = tel.recordID
-INNER JOIN [AUS2-DIV1-DDB01].[div1_daily].[dbo].[tblLegalLease] tll ON tel.LeaseID = tll.LeaseID
-INNER JOIN [AUS2-DIV1-DDB01].[div1_daily].[dbo].[tblLeaseGrantee] tee ON tll.GranteeID = tee.GranteeID
-WHERE GranteeNAME != ''
-GROUP BY 
-    LOWER(tr.recordID), GranteeNAME, tee.ADDRESS, tee.ZIP, tee.CITY, tr.StateID
+    SUM(CASE WHEN recordID IS NULL THEN 1 ELSE 0 END) AS recordID_Null_Count,
+    SUM(CASE WHEN recordID IS NOT NULL THEN 1 ELSE 0 END) AS recordID_NotNull_Count,
+	SUM(CASE WHEN recordType IS NULL THEN 1 ELSE 0 END) AS recordType_Null_Count,
+    SUM(CASE WHEN recordType IS NOT NULL THEN 1 ELSE 0 END) AS recordType_NotNull_Count,
+    SUM(CASE WHEN gName IS NULL THEN 1 ELSE 0 END) AS gName_Null_Count,
+    SUM(CASE WHEN gName IS NOT NULL THEN 1 ELSE 0 END) AS gName_NotNull_Count,
+    SUM(CASE WHEN gAddress IS NULL THEN 1 ELSE 0 END) AS gAddress_Null_Count,
+    SUM(CASE WHEN gAddress IS NOT NULL THEN 1 ELSE 0 END) AS gAddress_NotNull_Count,
+    SUM(CASE WHEN gZip IS NULL THEN 1 ELSE 0 END) AS gZip_Null_Count,
+    SUM(CASE WHEN gZip IS NOT NULL THEN 1 ELSE 0 END) AS gZip_NotNull_Count,
+    SUM(CASE WHEN gCity IS NULL THEN 1 ELSE 0 END) AS gCity_Null_Count,
+    SUM(CASE WHEN gCity IS NOT NULL THEN 1 ELSE 0 END) AS gCity_NotNull_Count,
+    SUM(CASE WHEN StateID IS NULL THEN 1 ELSE 0 END) AS StateID_Null_Count,
+    SUM(CASE WHEN StateID IS NOT NULL THEN 1 ELSE 0 END) AS StateID_NotNull_Count
+FROM countyScansTitle.dbo.LND_6833_tblgrantorGrantee
+WHERE recordType = 'grantee';
+
+
+SELECT *
+FROM countyScansTitle.dbo.LND_6833_tblgrantorGrantee
+WHERE recordid in (
+SELECT recordID
+FROM countyScansTitle.dbo.LND_6833_tblgrantorGrantee
+WHERE recordType = 'grantor'
+GROUP BY recordID
+HAVING COUNT(*) > 1)
+UNION
+SELECT *
+FROM countyScansTitle.dbo.LND_6833_tblgrantorGrantee
+WHERE recordid in (
+SELECT recordID
+FROM countyScansTitle.dbo.LND_6833_tblgrantorGrantee
+WHERE recordType = 'grantee'
+GROUP BY recordID
+HAVING COUNT(*) > 1)
+
+SELECT TOP 1 *
+FROM #TempLeaseGrantor
+WHERE GrantorID = 2720619

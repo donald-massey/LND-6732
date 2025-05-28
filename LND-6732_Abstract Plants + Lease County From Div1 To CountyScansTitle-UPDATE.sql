@@ -116,8 +116,10 @@ LEFT JOIN countyScansTitle.Tracker.MasterCountyLookup mcl ON mcl.leasingID = tll
 SET XACT_ABORT ON;
 BEGIN TRAN;
 --/*
+
+-- This isn't right, this should select from cst and join to div1 to find the records that don't exist
 -- CATEGORY 1: recordID exists in tblrecord but NOT in tblexportlog
--- 56,157 records
+-- ##,### records
 SELECT 
     LOWER(cst.recordID) AS cst_recordID,
     cst.recordNumber AS cst_recordno,
@@ -129,16 +131,14 @@ SELECT
     div1.page AS div1_page,
     div1.CountyName AS div1_countyName,
     'Category 1: In tblrecord but not in tblexportlog' AS category
-FROM #LND_6732_div1_values div1
-INNER JOIN #LND_6732_cst_values cst
+FROM #LND_6732_cst_values cst
+JOIN countyScansTitle.dbo.tblexportlog tel ON tel.recordID = cst.recordID
+JOIN #LND_6732_div1_values div1
     ON cst.recordNumber = div1.recordNumber 
     AND cst.fileDate = div1.RecordDate
     AND cst.countyName = div1.CountyName
-WHERE NOT EXISTS (
-    SELECT 1 
-    FROM countyScansTitle.dbo.tblexportLog tel 
-    WHERE tel.recordID = cst.recordID
-)
+WHERE tel.leaseID IS NULL
+AND div1.LeaseID IS NOT NULL;
  
 
 -- Insert statement for Category 1 records
@@ -163,16 +163,14 @@ SELECT
     NULL, 
     NULL, 
     NULL
-FROM #LND_6732_div1_values div1
-INNER JOIN #LND_6732_cst_values cst
+FROM #LND_6732_cst_values cst
+JOIN countyScansTitle.dbo.tblexportlog tel ON tel.recordID = cst.recordID
+JOIN #LND_6732_div1_values div1
     ON cst.recordNumber = div1.recordNumber 
     AND cst.fileDate = div1.RecordDate
     AND cst.countyName = div1.CountyName
-WHERE NOT EXISTS (
-    SELECT 1 
-    FROM countyScansTitle.dbo.tblexportLog tel 
-    WHERE tel.recordID = cst.recordID
-);
+WHERE tel.leaseID IS NULL
+AND div1.LeaseID IS NOT NULL;
 --*/
 
 /*
@@ -183,7 +181,7 @@ WHERE CONVERT(varchar, _CreatedDateTime, 23) = CONVERT(varchar, GETDATE(), 23)
 
 --/*
 -- CATEGORY 2: recordid exists in tblrecord and tblexportlog with NULL LeaseID and DIV1 Match
--- 31,811 records
+-- 24,810 records
 SELECT
     LOWER(cst.recordID) AS cst_recordID,
     cst.recordNumber AS cst_recordno,
@@ -196,9 +194,9 @@ SELECT
     div1.CountyName AS div1_countyName,
 	'Category 2: Exists in countyScansTitle with NULL LeaseID' AS category
 FROM countyScansTitle.dbo.tblexportLog tel
-INNER JOIN #LND_6732_cst_values cst 
+JOIN #LND_6732_cst_values cst 
     ON tel.recordID = cst.recordID
-INNER JOIN #LND_6732_div1_values div1 
+JOIN #LND_6732_div1_values div1 
     ON cst.recordNumber = div1.recordNumber 
     AND cst.fileDate = div1.RecordDate
     AND cst.countyName = div1.CountyName
@@ -208,11 +206,12 @@ WHERE tel.LeaseID IS NULL;
 UPDATE tel
 SET 
     tel.LeaseID = div1.LeaseID,
+	tel.zipName = 'LND-6732(2)',
     tel._ModifiedDateTime = GETDATE()
 FROM countyScansTitle.dbo.tblexportLog tel
-INNER JOIN #LND_6732_cst_values cst 
+JOIN #LND_6732_cst_values cst 
     ON tel.recordID = cst.recordID
-INNER JOIN #LND_6732_div1_values div1 
+JOIN #LND_6732_div1_values div1 
     ON cst.recordNumber = div1.recordNumber 
     AND cst.fileDate = div1.RecordDate
     AND cst.countyName = div1.CountyName
@@ -228,7 +227,7 @@ WHERE CONVERT(varchar, _ModifiedDateTime, 23) = CONVERT(varchar, GETDATE(), 23)
 
 --/*
 -- CATEGORY 3: Records in Div1 that don't have a match in CST (doesn't exist in both tblexportlog and tblrecord)
--- 3,759,990 Records
+-- 3,751,628 Records
 SELECT 
     cst.recordID AS cst_recordID,
     cst.recordNumber AS cst_recordno,
@@ -609,6 +608,16 @@ LEFT JOIN countyScansTitle.dbo.tblexportlog tel ON tel.LeaseID = div1.LeaseID
 LEFT JOIN [countyScansTitle].[Tracker].[MasterCountyLookup] mcl ON div1.countyID = mcl.LeasingID
 WHERE cst.recordID IS NULL
     AND tel.LeaseID IS NULL;
+
+-- Identify Why 36,833 recordIDs are in tblexportlog but not in tblrecord from this query
+SELECT DISTINCT zipName, COUNT(*)
+FROM countyScansTitle.dbo.tblexportlog
+WHERE CAST(_ModifiedDateTime AS DATE) = '2025-05-06'
+AND recordID NOT IN (SELECT recordID
+					 FROM countyScansTitle.dbo.tblrecord
+					 WHERE InstrumentTypeID IN ('MOGL','OGL','OGLAMD','POGL','OGLEXT','ROGL')
+					   AND statusID IN (4,10,16,18,90))
+GROUP BY zipName
 
 
 -- INSERT into tblexportlog for Category 3 records
