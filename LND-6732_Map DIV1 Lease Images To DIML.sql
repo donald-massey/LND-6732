@@ -1,3 +1,7 @@
+USE countyScansTitle;
+SET ANSI_NULLS ON;
+SET ANSI_WARNINGS ON;
+GO
 /****************************************************************************************************************************************************************
 ** File:            LND-6732_Map DIV1 Lease Images To DIML.sql
 ** Author:          Donald Massey
@@ -10,9 +14,50 @@
 ** 2025-05-21   Donald Massey       Update tblS3Image With Imported DIV1 Lease Images To DIML
 ***************************************************************************************************************************************************************/
 
+-- Create the query to update the tblS3Image with the imported DIV1 Lease Images to DIML
+SET XACT_ABORT ON;
+BEGIN TRAN;
+
+-- Query to update tbllandDescription using LND_6732_tblS3Image_20250506
+INSERT INTO dbo.tblS3Image (
+    recordID
+   ,s3FilePath
+   ,pageCount
+   ,fileSizeBytes
+   ,_ModifiedDateTime
+   ,_ModifiedBy
+)
+SELECT 
+    recordID
+   ,s3FilePath
+   ,pageCount
+   ,fileSizeBytes
+   ,_ModifiedDateTime
+   ,_ModifiedBy
+SELECT TOP 1 *
+SELECT COUNT(*)
+FROM countyScansTitle.dbo.LND_6732_tblS3Image_20250506;
+
+SELECT volume, page, *
+FROM countyScansTitle.dbo.tblrecord
+WHERE recordid = '000000d8-fa3b-4b25-b658-fea92ef0cdbe'
+
+-- Add a query to check the results post update
+    
+
+-- Rollback the transaction (for testing purposes)
+ROLLBACK TRAN;
+-- Uncomment the following line to commit the transaction
+--COMMIT TRAN;
+
+-- Check transaction count and state
+SELECT @@TRANCOUNT, XACT_STATE();
+
+
+
 -- These tables are used by LND-6732_query_s3.py, which updates this table with the S3 locations for the Lease images from DIV1
-IF OBJECT_ID(N'countyScansTitle.dbo.LND_6732_SRC_20250506') IS NOT NULL
-	DROP TABLE countyScansTitle.dbo.LND_6732_SRC_20250506;
+-- IF OBJECT_ID(N'countyScansTitle.dbo.LND_6732_SRC_20250506') IS NOT NULL
+--	DROP TABLE countyScansTitle.dbo.LND_6732_SRC_20250506;
 
 -- Count 2,081,043
 SELECT tel.leaseid, tel.recordid, CONCAT(LOWER(tls.StateAbbreviation), '/', LOWER(tlc.CountyName)) AS state_countyname, tlicr.package_id,
@@ -31,6 +76,7 @@ LEFT JOIN countyScansTitle.dbo.tbllookupStates tls ON tr.stateID = tls.StateID
 WHERE CONVERT(varchar, tr.receivedDate, 23) = '2025-05-06'
 AND package_id IS NOT NULL
 ORDER BY tel.leaseid
+
 
 --IF OBJECT_ID(N'countyScansTitle.dbo.LND_6732_DEST_20250506') IS NOT NULL
 --	DROP TABLE countyScansTitle.dbo.LND_6732_DEST_20250506;

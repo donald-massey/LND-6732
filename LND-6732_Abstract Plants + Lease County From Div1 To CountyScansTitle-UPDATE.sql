@@ -37,10 +37,16 @@ SELECT
    tr.countyID AS countyID
 INTO #LND_6732_cst_values
 FROM countyScansTitle.dbo.tblrecord tr
-JOIN countyScansTitle.dbo.tbllookupCounties c ON tr.countyID = c.countyID AND tr.stateID = c.stateID
 JOIN countyScansTitle.Tracker.MasterCountyLookup mcl ON mcl.LeasingID = tr.countyID
-WHERE tr.InstrumentTypeID IN ('MOGL','OGL','OGLAMD','POGL','OGLEXT','ROGL')
-  AND tr.statusID IN (4,10,16,18);
+JOIN countyScansTitle.dbo.tbllookupCounties c ON c.countyID = tr.countyID AND c.stateID = tr.stateID
+WHERE tr.recordIsLease = 1
+  AND tr.statusID IN (4,16)
+  AND tr.fileDate >= '2002-01-01'
+	      -- Include EOG McMullen and Gonzales. These are only keyed for EOG so we need to sources leases from those plants.
+              and tr.countyID not in (288,291,292,293,295,296,298,300,684,685,686,687,688,689,690,691,692,693,694,695,696,697,698,699,
+              700,701,702,703,704,705,706,707,708,709,710,711,712,713,714,715,716,1187);
+-- 958,244
+SELECT COUNT(*) FROM #LND_6732_cst_values;
 
 
 -- Create DIV1 values temp table
@@ -106,21 +112,22 @@ SELECT
 	DelayRentalValue
 INTO #LND_6732_div1_values
 FROM [AUS2-DIV1-DDB01].[div1_daily].[dbo].[tblLegalLease] tll
-JOIN [AUS2-DIV1-DDB01].[div1_daily].[dbo].[tblCounty] c ON tll.CountyID = c.CountyID
-LEFT JOIN [AUS2-DIV1-DDB01].[div1_Daily].[dbo].[tblLegalLeaseDocumentMapping] tlldm ON tll.LeaseID = tlldm.leaseId
+LEFT JOIN [AUS2-DIV1-DDB01].[div1_daily].[dbo].[tblCounty] c ON c.CountyID = tll.CountyID
+LEFT JOIN [AUS2-DIV1-DDB01].[div1_Daily].[dbo].[tblLegalLeaseDocumentMapping] tlldm ON tlldm.leaseId = tll.LeaseID
 LEFT JOIN [AUS2-DIV1-DDB01].[div1_Daily].[dbo].[tblDocument] td ON td.DocumentId = tlldm.documentId
-LEFT JOIN [AUS2-DIV1-DDB01].[div1_Daily].[dbo].[tblDocumentFile] tdf ON td.DocumentId = tdf.DocumentId
+LEFT JOIN [AUS2-DIV1-DDB01].[div1_Daily].[dbo].[tblDocumentFile] tdf ON tdf.DocumentId = td.DocumentId
 LEFT JOIN countyScansTitle.Tracker.MasterCountyLookup mcl ON mcl.leasingID = tll.CountyID;
 
+-- 3,058,774
+SELECT COUNT(*)
+FROM #LND_6732_div1_values
 
 SET XACT_ABORT ON;
 BEGIN TRAN;
---/*
 
--- This isn't right, this should select from cst and join to div1 to find the records that don't exist
--- CATEGORY 1: recordID exists in tblrecord but NOT in tblexportlog
--- ##,### records
-SELECT 
+-- CATEGORY 1: recordid exists in tblrecord and tblexportlog with NULL LeaseID and DIV1 Match
+-- 21,840 records
+SELECT DISTINCT
     LOWER(cst.recordID) AS cst_recordID,
     cst.recordNumber AS cst_recordno,
     div1.LeaseID AS div1_leaseid,
@@ -130,108 +137,44 @@ SELECT
     div1.volume AS div1_volume,
     div1.page AS div1_page,
     div1.CountyName AS div1_countyName,
-    'Category 1: In tblrecord but not in tblexportlog' AS category
-FROM #LND_6732_cst_values cst
-JOIN countyScansTitle.dbo.tblexportlog tel ON tel.recordID = cst.recordID
-JOIN #LND_6732_div1_values div1
-    ON cst.recordNumber = div1.recordNumber 
-    AND cst.fileDate = div1.RecordDate
-    AND cst.countyName = div1.CountyName
-WHERE tel.leaseID IS NULL
-AND div1.LeaseID IS NOT NULL;
- 
-
--- Insert statement for Category 1 records
-INSERT INTO countyScansTitle.dbo.tblexportLog (
-    recordID, LeaseID, exportDate, sentToAudit, zipName, 
-    zipCopied, imageCopied, _CreatedDateTime, _CreatedBy, 
-    _ModifiedDateTime, _ModifiedBy, StatusOfLastAttempt, 
-    DateOfLastAttempt, CountOfLastAttempt
-)
-SELECT 
-    cst.recordID, 
-    div1.LeaseID, 
-    GETDATE(), 
-    0, 
-    'LND-6732(1)', 
-    0, 
-    0, 
-    GETDATE(), 
-    'LND-6732(1)', 
-    GETDATE(), 
-    'LND-6732(1)', 
-    NULL, 
-    NULL, 
-    NULL
-FROM #LND_6732_cst_values cst
-JOIN countyScansTitle.dbo.tblexportlog tel ON tel.recordID = cst.recordID
-JOIN #LND_6732_div1_values div1
-    ON cst.recordNumber = div1.recordNumber 
-    AND cst.fileDate = div1.RecordDate
-    AND cst.countyName = div1.CountyName
-WHERE tel.leaseID IS NULL
-AND div1.LeaseID IS NOT NULL;
---*/
-
-/*
-SELECT *
-FROM CountyscansTitle.dbo.tblexportLog
-WHERE CONVERT(varchar, _CreatedDateTime, 23) = CONVERT(varchar, GETDATE(), 23)
-*/
-
---/*
--- CATEGORY 2: recordid exists in tblrecord and tblexportlog with NULL LeaseID and DIV1 Match
--- 24,810 records
-SELECT
-    LOWER(cst.recordID) AS cst_recordID,
-    cst.recordNumber AS cst_recordno,
-    div1.LeaseID AS div1_leaseid,
-    div1.recordNumber AS div1_recordno,
-    cst.volume AS cst_volume,
-    cst.page AS cst_page,
-    div1.volume AS div1_volume,
-    div1.page AS div1_page,
-    div1.CountyName AS div1_countyName,
-	'Category 2: Exists in countyScansTitle with NULL LeaseID' AS category
+	'Category 1: Exists in countyScansTitle with NULL LeaseID' AS category
 FROM countyScansTitle.dbo.tblexportLog tel
-JOIN #LND_6732_cst_values cst 
-    ON tel.recordID = cst.recordID
-JOIN #LND_6732_div1_values div1 
-    ON cst.recordNumber = div1.recordNumber 
-    AND cst.fileDate = div1.RecordDate
-    AND cst.countyName = div1.CountyName
+JOIN #LND_6732_cst_values cst ON tel.recordID = cst.recordID
+JOIN #LND_6732_div1_values div1 ON div1.recordNumber = cst.recordNumber
+                               AND div1.RecordDate = cst.fileDate
+                               AND div1.CountyName = cst.countyName
 WHERE tel.LeaseID IS NULL;
 
--- Update statement for Category 2 records
+-- Update statement for Category 1 records
 UPDATE tel
 SET 
     tel.LeaseID = div1.LeaseID,
-	tel.zipName = 'LND-6732(2)',
+	tel.zipName = 'LND-6732(1)',
     tel._ModifiedDateTime = GETDATE()
 FROM countyScansTitle.dbo.tblexportLog tel
-JOIN #LND_6732_cst_values cst 
-    ON tel.recordID = cst.recordID
-JOIN #LND_6732_div1_values div1 
-    ON cst.recordNumber = div1.recordNumber 
-    AND cst.fileDate = div1.RecordDate
-    AND cst.countyName = div1.CountyName
+JOIN #LND_6732_cst_values cst ON tel.recordID = cst.recordID
+JOIN #LND_6732_div1_values div1 ON div1.recordNumber = cst.recordNumber
+                               AND div1.RecordDate = cst.fileDate
+                               AND div1.CountyName = cst.countyName
 WHERE tel.LeaseID IS NULL;
---*/
+
+SELECT COUNT(DISTINCT tel.recordID)
+FROM countyScansTitle.dbo.tblexportLog tel
+JOIN #LND_6732_cst_values cst ON tel.recordID = cst.recordID
+JOIN #LND_6732_div1_values div1 ON div1.recordNumber = cst.recordNumber
+                               AND div1.RecordDate = cst.fileDate
+                               AND div1.CountyName = cst.countyName
+WHERE zipName = 'LND-6732(1)';
 
 
-/*
-SELECT *
-FROM CountyscansTitle.dbo.tblexportLog
-WHERE CONVERT(varchar, _ModifiedDateTime, 23) = CONVERT(varchar, GETDATE(), 23)
-*/
 
---/*
--- CATEGORY 3: Records in Div1 that don't have a match in CST (doesn't exist in both tblexportlog and tblrecord)
--- 3,751,628 Records
+-- CATEGORY 2: Records in Div1 that don't have a match in CST
+-- 2,118,373 Records
 SELECT 
     cst.recordID AS cst_recordID,
     cst.recordNumber AS cst_recordno,
-    div1.LeaseID AS div1_leaseid,
+    tel.leaseID AS tel_leaseID,
+	div1.LeaseID AS div1_leaseid,
 	div1_generated_recordid,
     div1.recordNumber AS div1_recordno,
     cst.volume AS cst_volume,
@@ -239,15 +182,14 @@ SELECT
     div1.volume AS div1_volume,
     div1.page AS div1_page,
     div1.CountyName AS div1_countyName,
-    'Category 3: Exists in Div1 but not in tblrecord or tblexportlog' AS category
+    'Category 2: Exists in Div1 but not in CST' AS category
 FROM #LND_6732_div1_values div1
-LEFT JOIN #LND_6732_cst_values cst ON 
-    cst.recordNumber = div1.recordNumber 
-    AND cst.fileDate = div1.RecordDate
-    AND cst.countyName = div1.CountyName
-LEFT JOIN countyScansTitle.dbo.tblexportLog tel ON tel.LeaseID = div1.LeaseID
-WHERE cst.recordID IS NULL
-  AND tel.LeaseID IS NULL;
+LEFT JOIN countyScansTitle.dbo.tblexportlog tel ON tel.LeaseID = div1.LeaseID
+LEFT JOIN #LND_6732_cst_values cst ON cst.recordNumber = div1.RecordNumber 
+							 AND cst.fileDate = div1.RecordDate
+							 AND cst.countyName = div1.CountyName
+JOIN countyScansTitle.Tracker.MasterCountyLookup mcl ON mcl.LeasingID = div1.countyID
+WHERE tel.LeaseID IS NULL AND mcl.CourthouseTitleID IS NOT NULL;
 
 
 -- Create New Status In tblStatus
@@ -261,9 +203,9 @@ SELECT
 	'not currently in use'			-- assignmentDescription
 
 
--- INSERT into tblrecord for Category 3 records
+-- INSERT into tblrecord for Category 2 records
 -- Default Value (Gathered from Ryan M Mapping / csdigital-to-cstitle)
--- 3,759,990 Records
+-- 2,118,373 Records
 INSERT INTO countyScansTitle.dbo.tblrecord (
     recordID,
 	sourceFilePath,
@@ -492,7 +434,7 @@ SELECT
 	div1.recordNumber,								-- recordNumber, DIV1
     div1.InstrumentDate,							-- instrumentDate, DIV1
 	div1.RecordDate,								-- fileDate, DIV1
-    'LND-6732(3)',									-- remarks, DIV1
+    'LND-6732(2)',									-- remarks, DIV1
     0,			    								-- MultipleLeasesForTract, Default Value
     CAST(div1.acres AS FLOAT),						-- AreaAmount, DIV1
     CASE
@@ -600,28 +542,15 @@ SELECT
     NULL,											-- Consideration, Default Value
     NULL											-- InstrumentTypeFullId, Default Value
 FROM #LND_6732_div1_values div1
-LEFT JOIN #LND_6732_cst_values cst ON 
-    cst.recordNumber = div1.RecordNumber 
-    AND cst.fileDate = div1.RecordDate
-    AND cst.countyName = div1.CountyName
 LEFT JOIN countyScansTitle.dbo.tblexportlog tel ON tel.LeaseID = div1.LeaseID
-LEFT JOIN [countyScansTitle].[Tracker].[MasterCountyLookup] mcl ON div1.countyID = mcl.LeasingID
-WHERE cst.recordID IS NULL
-    AND tel.LeaseID IS NULL;
+LEFT JOIN #LND_6732_cst_values cst ON cst.recordNumber = div1.RecordNumber 
+							 AND cst.fileDate = div1.RecordDate
+							 AND cst.countyName = div1.CountyName
+JOIN countyScansTitle.Tracker.MasterCountyLookup mcl ON mcl.LeasingID = div1.countyID
+WHERE tel.LeaseID IS NULL AND mcl.CourthouseTitleID IS NOT NULL;
 
--- Identify Why 36,833 recordIDs are in tblexportlog but not in tblrecord from this query
-SELECT DISTINCT zipName, COUNT(*)
-FROM countyScansTitle.dbo.tblexportlog
-WHERE CAST(_ModifiedDateTime AS DATE) = '2025-05-06'
-AND recordID NOT IN (SELECT recordID
-					 FROM countyScansTitle.dbo.tblrecord
-					 WHERE InstrumentTypeID IN ('MOGL','OGL','OGLAMD','POGL','OGLEXT','ROGL')
-					   AND statusID IN (4,10,16,18,90))
-GROUP BY zipName
-
-
--- INSERT into tblexportlog for Category 3 records
--- 3,802,980 Records
+-- INSERT into tblexportlog for Category 2 records
+-- 2,118,373 Records
 INSERT INTO countyScansTitle.dbo.tblexportlog (
     recordID,                     -- Gathered from CST.tblrecord
     LeaseID,                      -- Gathered from DIV1
@@ -641,7 +570,7 @@ SELECT
     div1.LeaseID,                 -- DIV1 LeaseID
     GETDATE(),                    -- Current timestamp as exportDate
     0,                            -- sentToAudit, Default Value
-    'LND-6732(3)',				  -- Default Value
+    'LND-6732(2)',				  -- Default Value
 	0,                            -- zipCopied, Default Value
 	0,                            -- imageCopied, Default Value
 	GETDATE(),			          -- _CreatedDateTime, Default Value
@@ -650,61 +579,19 @@ SELECT
     NULL,					      -- Current timestamp for DateOfLastAttempt, Default Value
     NULL                          -- Initial count of attempt, Default Value
 FROM #LND_6732_div1_values div1
-LEFT JOIN [countyScansTitle].[Tracker].[MasterCountyLookup] mcl ON div1.countyID = mcl.LeasingID
 LEFT JOIN countyScansTitle.dbo.tblexportlog tel ON tel.LeaseID = div1.LeaseID
+JOIN countyScansTitle.Tracker.MasterCountyLookup mcl ON mcl.LeasingID = div1.countyID
 WHERE tel.LeaseID IS NULL;
---*/
+-- Why didn't these 600 get inserted into tblrecord?
 
-/*
+
 SELECT *
 FROM countyScansTitle.dbo.tblrecord
-WHERE CONVERT(varchar, _CreatedDateTime, 23) = CONVERT(varchar, GETDATE(), 23)
+WHERE remarks = 'LND-6732(2)'
 
-SELECT *
+SELECT COUNT(*)
 FROM countyScansTitle.dbo.tblexportLog
-WHERE _CreatedBy = 'na\donald.massey' AND CONVERT(varchar, _CreatedDateTime, 23) = CONVERT(varchar, GETDATE(), 23)
-*/
-
-
--- SUMMARY COUNTS
-SELECT 'Category 1: In tblrecord but not in tblexportlog' AS Category,
-       COUNT(*) AS RecordCount
-FROM #LND_6732_div1_values div1
-INNER JOIN #LND_6732_cst_values cst
-    ON cst.recordNumber = div1.recordNumber 
-    AND cst.fileDate = div1.RecordDate
-    AND cst.countyName = div1.CountyName
-WHERE NOT EXISTS (
-    SELECT 1 
-    FROM countyScansTitle.dbo.tblexportLog tel 
-    WHERE tel.recordID = cst.recordID
-)
-
-UNION ALL
-
-SELECT 'Category 2: Exists in both tblexportlog and tblrecord' AS Category,
-       COUNT(*) AS RecordCount
-FROM #LND_6732_div1_values div1
-INNER JOIN #LND_6732_cst_values cst
-    ON cst.recordNumber = div1.recordNumber 
-    AND cst.fileDate = div1.RecordDate
-    AND cst.countyName = div1.CountyName
-INNER JOIN countyScansTitle.dbo.tblexportLog tel 
-    ON tel.recordID = cst.recordID
-WHERE tel.LeaseID IS NULL
-
-UNION ALL
-
-SELECT 'Category 3: Exists in Div1 but not in tblrecord or tblexportlog' AS Category,
-       COUNT(*) AS RecordCount
-FROM #LND_6732_div1_values div1
-LEFT JOIN countyScansTitle.dbo.tblexportLog tel 
-    ON tel.LeaseID = div1.LeaseID
-LEFT JOIN #LND_6732_cst_values cst
-    ON cst.recordNumber = div1.recordNumber 
-    AND cst.fileDate = div1.RecordDate
-    AND cst.countyName = div1.CountyName
-WHERE tel.LeaseID IS NULL;
+WHERE zipName = 'LND-6732(2)'
 
 
 -- Rollback the transaction (for testing purposes)
@@ -714,3 +601,19 @@ COMMIT TRAN;
 
 -- Check transaction count and state
 SELECT @@TRANCOUNT, XACT_STATE();
+
+-- 6/3/25 Ales identified that there are/were 638 records in cstitle Dev without countyID, this is likely from records in DIV1 without a county in CST
+-- Create a query to identify if this exists going forward and DELETE/MODIFY the records
+
+SELECT tel.*, *
+FROM countyScansTitle.dbo.tblrecord tr
+LEFT JOIN countyScansTitle.dbo.tblexportLog tel ON tel.recordID = tr.recordID
+WHERE countyid IS NULL
+
+SELECT *
+FROM [AUS2-DIV1-DDB01].[div1_daily].[dbo].[tblLegalLease] tll
+WHERE leaseid = 984304
+
+SELECT *
+FROM #LND_6732_div1_values
+WHERE leaseid = 984304

@@ -1,35 +1,17 @@
 import os
 import traceback
+from typing import List, Dict, Any, Generator
+from datetime import datetime
 
 import boto3
-from botocore.config import Config
 import pandas as pd
-from datetime import datetime
 from dotenv import load_dotenv
-from sqlalchemy import create_engine
+from botocore.config import Config
 from concurrent.futures import TimeoutError
 from pebble import ProcessPool, ProcessExpired
 
-from typing import List, Dict, Any, Generator
-from io import BytesIO
-from PyPDF2 import PdfReader
+from utils import create_alchemy_engine, copy_table
 
-
-def create_alchemy_engine():
-    """
-    Create a SQLAlchemy engine.
-    """
-    try:
-        connection_string = (
-            f"mssql+pyodbc://{cstitle_username}:{cstitle_password}@{cstitle_server}/countyScansTitle?driver=ODBC+Driver+17+for+SQL+Server")  # Ensure the driver is installed
-
-        # connection_string = (
-        #     "mssql+pyodbc://@{cstitle_server}/countyScansTitle?driver=ODBC+Driver+17+for+SQL+Server&Trusted_Connection=yes"        )
-        engine = create_engine(connection_string)
-        return engine
-    except Exception as e:
-        print(f"Error creating engine: {e}")
-        raise
 
 def create_leaseid_df():
     # Create the SQLAlchemy engine
@@ -187,34 +169,6 @@ def map_images(df_lease_ids, max_workers=7, max_timeout=None):
     end_time = datetime.now()
     elapsed = end_time - start_time
     print("Files were processed in (hh:mm:ss.ms) {}".format(str(elapsed)[:-3]))
-
-
-def copy_table(table_name=None):
-    cstitle_username = os.getenv('cstitle_username')
-    cstitle_password = os.getenv('cstitle_password')
-    cstitle_dev_server = os.getenv('cstitle_dev_server')
-    cstitle_prod_server = os.getenv('cstitle_prod_server')
-
-    source_connection_string = f"mssql+pyodbc://{cstitle_username}:{cstitle_password}@{cstitle_dev_server}/countyScansTitle?driver=ODBC+Driver+17+for+SQL+Server"
-    target_connection_string = f"mssql+pyodbc://{cstitle_username}:{cstitle_password}@{cstitle_prod_server}/countyScansTitle?driver=ODBC+Driver+17+for+SQL+Server"
-
-    # Create engines for source and target databases
-    source_engine = create_engine(source_connection_string)
-    target_engine = create_engine(target_connection_string)
-
-    try:
-        # Read the table from the source database into a DataFrame
-        with source_engine.connect() as source_conn:
-            query = f"SELECT * FROM {table_name}"
-            df = pd.read_sql(query, source_conn)
-            print(f"Read {len(df)} rows from table '{table_name}' in the source database.")
-
-        # Write the DataFrame to the target database
-        with target_engine.connect() as target_conn:
-            df.to_sql(table_name, con=target_conn, if_exists='replace', index=False)
-            print(f"Successfully wrote {len(df)} rows to table '{table_name}' in the target database.")
-    except Exception as e:
-        print(f"An error occurred: {e}")
 
 
 if __name__ == "__main__":

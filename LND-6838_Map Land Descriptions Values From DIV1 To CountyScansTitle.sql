@@ -20,57 +20,90 @@ SET XACT_ABORT ON;
 BEGIN TRAN;
 
 -- Query to update tbllandDescription using LND_6838_tbllandDescription
-UPDATE dbo.LND_6838_tbllandDescription
-SET 
-	 LND_6838_tbllandDescription.landDescriptionID = ld_20250519.landDescriptionID
-	,LND_6838_tbllandDescription.recordID = ld_20250519.recordID
-	,LND_6838_tbllandDescription.CountyID = ld_20250519.CountyID
-	,LND_6838_tbllandDescription.Subdivision = ld_20250519.Subdivision
-	,LND_6838_tbllandDescription.Survey = ld_20250519.Survey
-	,LND_6838_tbllandDescription.Lot = ld_20250519.Lot
-	,LND_6838_tbllandDescription.Block = ld_20250519.Block
-	,LND_6838_tbllandDescription.Section = ld_20250519.Section
-	,LND_6838_tbllandDescription.Township = ld_20250519.Township
-	,LND_6838_tbllandDescription.RangeOrBlock = ld_20250519.RangeOrBlock
-	,LND_6838_tbllandDescription.AbstractName = ld_20250519.AbstractName
-	,LND_6838_tbllandDescription.Suffix = ld_20250519.Suffix
-	,LND_6838_tbllandDescription.QuarterCalls = ld_20250519.QuarterCalls
-	,LND_6838_tbllandDescription.AcreageByTract = ld_20250519.AcreageByTract
-	,LND_6838_tbllandDescription.TractDRRecordNumber = ld_20250519.TractDRRecordNumber
-	,LND_6838_tbllandDescription.TractDRVolumePage = ld_20250519.TractDRVolumePage
-	,LND_6838_tbllandDescription.PlatVolumePage = ld_20250519.PlatVolumePage
-	,LND_6838_tbllandDescription.PlatRecordNumber = ld_20250519.PlatRecordNumber
-	,LND_6838_tbllandDescription.BriefLegal = ld_20250519.BriefLegal
-	,LND_6838_tbllandDescription.EntryDate = ld_20250519.EntryDate
-	,LND_6838_tbllandDescription.oldLandID = ld_20250519.oldLandID
-	,LND_6838_tbllandDescription._CreatedDateTime = ld_20250519._CreatedDateTime
-	,LND_6838_tbllandDescription._CreatedBy = ld_20250519._CreatedBy
-	,LND_6838_tbllandDescription._ModifiedDateTime = ld_20250519._ModifiedDateTime
-	,LND_6838_tbllandDescription._ModifiedBy = ld_20250519._ModifiedBy
-	,LND_6838_tbllandDescription.AutoGenDate = ld_20250519.AutoGenDate
-	,LND_6838_tbllandDescription.PatentNumber = ld_20250519.PatentNumber
-	,LND_6838_tbllandDescription.PatentVolume = ld_20250519.PatentVolume
-	,LND_6838_tbllandDescription.CertificateNumber = ld_20250519.CertificateNumber
-	,LND_6838_tbllandDescription.FileNumber = ld_20250519.FileNumber
-	,LND_6838_tbllandDescription.PlatVolumeCabinet = ld_20250519.PlatVolumeCabinet
-	,LND_6838_tbllandDescription.PlatPageSlide = ld_20250519.PlatPageSlide
-	,LND_6838_tbllandDescription.PlatBookType = ld_20250519.PlatBookType
-	,LND_6838_tbllandDescription.QuarterCallsFull = ld_20250519.QuarterCallsFull
-	,LND_6838_tbllandDescription.NewCityBlock = ld_20250519.NewCityBlock
-	,LND_6838_tbllandDescription.SubdivisionNameId = ld_20250519.SubdivisionNameId
-	,LND_6838_tbllandDescription.IsDeleted = ld_20250519.IsDeleted
-	,LND_6838_tbllandDescription.CountyName = ld_20250519.CountyName
-	,LND_6838_tbllandDescription.StateAbbreviation = ld_20250519.StateAbbreviation
-FROM LND_6838_tblLandDescription_20250519 AS ld_20250519
-WHERE LND_6838_tbllandDescription.landDescriptionID = ld_20250519.landDescriptionID;
-
--- Select given values from both tables to verify the update is correct
+INSERT INTO dbo.tbllandDescription (
+    landDescriptionID,
+    recordID,
+    CountyID,
+    Subdivision,
+    Survey,
+    Lot,
+    Block,
+    Section,
+    Township,
+    RangeOrBlock,
+    AbstractName,
+    Suffix,
+    QuarterCalls,
+    AcreageByTract,
+    TractDRRecordNumber,
+    TractDRVolumePage,
+    PlatVolumePage,
+    PlatRecordNumber,
+    BriefLegal,
+    EntryDate,
+    oldLandID,
+    _CreatedDateTime,
+    _CreatedBy,
+    _ModifiedDateTime,
+    _ModifiedBy,
+    AutoGenDate,
+    PatentNumber,
+    PatentVolume,
+    CertificateNumber,
+    FileNumber,
+    PlatVolumeCabinet,
+    PlatPageSlide,
+    PlatBookType,
+    QuarterCallsFull,
+    NewCityBlock,
+    SubdivisionNameId,
+    IsDeleted
+)
+SELECT 
+    LOWER(NEWID()),
+    recordID,
+    CountyID,
+    Subdivision,
+    Survey,
+    Lot,
+    Block,
+    Section,
+    Township,
+    RangeOrBlock,
+    AbstractName,
+    Suffix,
+    QuarterCalls,
+    AcreageByTract,
+    TractDRRecordNumber,
+    TractDRVolumePage,
+    PlatVolumePage,
+    PlatRecordNumber,
+    BriefLegal,
+    EntryDate,
+    oldLandID,
+    _CreatedDateTime,
+    _CreatedBy,
+    _ModifiedDateTime,
+    _ModifiedBy,
+    AutoGenDate,
+    PatentNumber,
+    PatentVolume,
+    CertificateNumber,
+    FileNumber,
+    PlatVolumeCabinet,
+    PlatPageSlide,
+    PlatBookType,
+    QuarterCallsFull,
+    NewCityBlock,
+    SubdivisionNameId,
+    IsDeleted
+FROM countyScansTitle.dbo.LND_6838_tblLandDescription AS LND_6838_tld;
 
 
 -- Rollback the transaction (for testing purposes)
-ROLLBACK TRAN;
+--ROLLBACK TRAN;
 -- Uncomment the following line to commit the transaction
---COMMIT TRAN;
+COMMIT TRAN;
 
 -- Check transaction count and state
 SELECT @@TRANCOUNT, XACT_STATE();
@@ -85,185 +118,621 @@ DECLARE @currentDateTime DATETIME = GETDATE();
 SELECT LOWER(NEWID()) AS landDescriptionID
 	  ,LOWER(tr.recordID) AS recordID  -- From tblRecord
 	  ,tr.countyID AS CountyID  -- From tblRecord
-	  ,CAST('' AS CHAR(300)) AS Subdivision  -- Parsed From BriefLegals
-	  ,CAST('' AS CHAR(300)) AS Survey  -- Parsed From BriefLegals
-	  ,CAST('' AS CHAR(100)) AS Lot  -- Parsed From BriefLegals
-	  ,CAST('' AS CHAR(300)) AS Block  -- Parsed From BriefLegals
-	  ,CAST('' AS CHAR(50)) AS Section  -- Parsed From BriefLegals
-	  ,CAST('' AS CHAR(50)) AS Township  -- Parsed From BriefLegals
+	  ,NULLIF(CAST('' AS CHAR(300)),'') AS Subdivision  -- Parsed From BriefLegals
+	  ,NULLIF(CAST('' AS CHAR(300)),'') AS Survey  -- Parsed From BriefLegals
+	  ,NULLIF(CAST('' AS CHAR(100)),'') AS Lot  -- Parsed From BriefLegals
+	  ,NULLIF(CAST('' AS CHAR(300)),'') AS Block  -- Parsed From BriefLegals
+	  ,NULLIF(CAST('' AS CHAR(50)),'') AS Section  -- Parsed From BriefLegals
+	  ,NULLIF(CAST('' AS CHAR(50)),'') AS Township  -- Parsed From BriefLegals
 	  -- Investigate this before hand off to Christian M.
-	  ,COALESCE(CONCAT(CAST(ta.Range AS INT), ta.RangeDirection), ta.SurveyBlock) AS RangeOrBlock -- ta.Range, 
+	  ,NULLIF(COALESCE(CONCAT(CAST(ta.Range AS INT), ta.RangeDirection), ta.SurveyBlock),'') AS RangeOrBlock -- ta.Range, 
 	  ,ta.AbstractNo AS AbstractName  -- From tblAbstract
-	  ,CAST('' AS CHAR(50)) AS Suffix  -- Default Value
-	  ,CAST('' AS CHAR(500)) AS QuarterCalls  -- Parsed From BriefLegals
-	  ,CAST('' AS CHAR(50)) AS AcreageByTract  -- No Values
-	  ,CAST('' AS CHAR(300)) AS TractDRRecordNumber  -- No values
-	  ,CAST('' AS CHAR(300)) AS TractDRVolumePage  -- No values
-	  ,CAST('' AS CHAR(300)) AS PlatVolumePage  -- No values
-	  ,CAST('' AS CHAR(300)) AS PlatRecordNumber  -- No Values
+	  ,NULLIF(CAST('' AS CHAR(50)),'') AS Suffix  -- Default Value
+	  ,NULLIF(CAST('' AS CHAR(500)),'') AS QuarterCalls  -- Parsed From BriefLegals
+	  ,NULLIF(CAST('' AS CHAR(50)),'') AS AcreageByTract  -- No Values
+	  ,NULLIF(CAST('' AS CHAR(300)),'') AS TractDRRecordNumber  -- No values
+	  ,NULLIF(CAST('' AS CHAR(300)),'') AS TractDRVolumePage  -- No values
+	  ,NULLIF(CAST('' AS CHAR(300)),'') AS PlatVolumePage  -- No values
+	  ,NULLIF(CAST('' AS CHAR(300)),'') AS PlatRecordNumber  -- No Values
 	  ,tlam.descriptions AS BriefLegal -- From tblleaseAbstractMapping
 	  ,@currentDateTime AS EntryDate -- Default Value
-	  ,CAST('' AS INT) AS oldLandID -- No Values
+	  ,NULLIF(CAST('' AS INT),'') AS oldLandID -- No Values
 	  ,@currentDateTime AS _CreatedDateTime -- Default Value
 	  ,'LND-6838' AS _CreatedBy -- Default Value
 	  ,@currentDateTime AS _ModifiedDateTime -- Default Value
 	  ,'LND-6838' AS _ModifiedBy -- Default Value
 	  ,@currentDateTime AS AutoGenDate -- Default Value
-	  ,CAST('' AS CHAR(50)) AS PatentNumber -- Default Values
-	  ,CAST('' AS CHAR(50)) AS PatentVolume  -- Default Values
-	  ,CAST('' AS CHAR(50)) AS CertificateNumber  -- Default Values
-	  ,CAST('' AS CHAR(50)) AS FileNumber  -- Default Values
-	  ,CAST('' AS CHAR(10)) AS PlatVolumeCabinet  -- Default Values
-	  ,CAST('' AS CHAR(10)) AS PlatPageSlide  -- Default Values
-	  ,CAST('' AS CHAR(20)) AS PlatBookType  -- Default Values
-	  ,CAST('' AS CHAR(500)) AS QuarterCallsFull  -- Parsed From BriefLegals
-	  ,CAST('' AS CHAR(100)) AS NewCityBlock  -- Parsed From BriefLegals
-	  ,CAST('' AS INT) AS SubdivisionNameId  -- Default Values
+	  ,NULLIF(CAST('' AS CHAR(50)),'') AS PatentNumber -- Default Values
+	  ,NULLIF(CAST('' AS CHAR(50)),'') AS PatentVolume  -- Default Values
+	  ,NULLIF(CAST('' AS CHAR(50)),'') AS CertificateNumber  -- Default Values
+	  ,NULLIF(CAST('' AS CHAR(50)),'') AS FileNumber  -- Default Values
+	  ,NULLIF(CAST('' AS CHAR(10)),'') AS PlatVolumeCabinet  -- Default Values
+	  ,NULLIF(CAST('' AS CHAR(10)),'') AS PlatPageSlide  -- Default Values
+	  ,NULLIF(CAST('' AS CHAR(20)),'') AS PlatBookType  -- Default Values
+	  ,NULLIF(CAST('' AS CHAR(500)),'') AS QuarterCallsFull  -- Parsed From BriefLegals
+	  ,NULLIF(CAST('' AS CHAR(100)),'') AS NewCityBlock  -- Parsed From BriefLegals
+	  ,NULLIF(CAST('' AS INT),'') AS SubdivisionNameId  -- Default Values
 	  ,CAST(0 AS BIT) AS IsDeleted  -- Default Value
 	  ,tlc.CountyName AS CountyName
-	  ,tls.StateAbbreviation AS StateAbbreviation
+	  ,tls.StateName AS StateName
 INTO countyScansTitle.dbo.LND_6838_tbllandDescription
 FROM [AUS2-DIV1-DDB01].[div1_daily].[dbo].[tblLegalLease] tll
-LEFT JOIN [AUS2-DIV1-DDB01].[div1_daily].[dbo].[tblLegalLeaseDocumentMapping] tlldm ON tlldm.leaseid = tll.leaseid
-LEFT JOIN [AUS2-DIV1-DDB01].[div1_daily].[dbo].[tblleaseAbstractMapping] tlam ON tlam.mappingid = tlldm.legalleasedocumentmappingid
-LEFT JOIN [AUS2-DIV1-DDB01].[div1_daily].[dbo].[tblAbstract] ta ON ta.abstractid = tlam.abstractid
-LEFT JOIN countyScansTitle.dbo.tblExportLog tel ON tll.leaseid = tel.LeaseID
-LEFT JOIN countyScansTitle.dbo.tblrecord tr ON tel.recordID = tr.recordID
-LEFT JOIN countyScansTitle.dbo.tbllookupStates tls ON tls.StateID = tr.stateID
-LEFT JOIN countyScansTitle.dbo.tbllookupCounties tlc ON tlc.CountyID = tr.countyID
-WHERE CAST(tr.receivedDate AS DATE) = '2025-05-06';
+JOIN [AUS2-DIV1-DDB01].[div1_daily].[dbo].[tblLegalLeaseDocumentMapping] tlldm ON tlldm.leaseid = tll.leaseid
+JOIN [AUS2-DIV1-DDB01].[div1_daily].[dbo].[tblleaseAbstractMapping] tlam ON tlam.mappingid = tlldm.legalleasedocumentmappingid
+JOIN [AUS2-DIV1-DDB01].[div1_daily].[dbo].[tblAbstract] ta ON ta.abstractid = tlam.abstractid
+JOIN countyScansTitle.dbo.tblExportLog tel ON tll.leaseid = tel.LeaseID
+JOIN countyScansTitle.dbo.tblrecord tr ON tel.recordID = tr.recordID
+JOIN countyScansTitle.dbo.tbllookupStates tls ON tls.StateID = tr.stateID
+JOIN countyScansTitle.dbo.tbllookupCounties tlc ON tlc.CountyID = tr.countyID
+WHERE tr.remarks LIKE '%LND-6732%'
+AND tlam.descriptions != ''
+AND tlam.descriptions IS NOT NULL 
+AND tlam.descriptions NOT LIKE '%ALL%'
+AND tlam.descriptions NOT LIKE '%BELOW%'
+AND tlam.descriptions NOT LIKE '%REMARKS%';
 
+ALTER TABLE countyScansTitle.dbo.LND_6838_tbllandDescription
+ALTER COLUMN _CreatedBy VARCHAR(75);
+
+ALTER TABLE countyScansTitle.dbo.LND_6838_tbllandDescription
+ALTER COLUMN _ModifiedBy VARCHAR(75);
+
+SELECT TOP 10000 *
+FROM countyScansTitle.dbo.LND_6838_tbllandDescription
 
 -- Gather records for brief-legals-parser -> CSV
-/*
-SELECT landDescriptionID, BriefLegal, StateAbbreviation, CountyName
+/*  -- Copy INPUT CSV -> brief-legals-parser/python_modules/input_data, OUTPUT -> C:\tmp\BriefLegals\parsed_brief_legals.csv
+SELECT landDescriptionID, CountyName AS County, StateName AS State, BriefLegal
 FROM countyScansTitle.dbo.LND_6838_tbllandDescription
-WHERE BriefLegal IS NOT NULL AND BriefLegal != ''
 ORDER BY CountyName;
 */
 
 
+-- Explode Section Values
+-- Create a temporary table to store the split sections
+SET XACT_ABORT ON;
+BEGIN TRAN;
 
+IF OBJECT_ID(N'tempdb..#SplitSections', 'U') IS NOT NULL
+	DROP TABLE #SplitSections;
 
--- QA Section <-- Standardize this
--- Create a better section for these QA queries moving forward
+CREATE TABLE #SplitSections (
+    landDescriptionId NVARCHAR(40),
+	recordID VARCHAR(36),
+	CountyID INT,
+	Subdivision CHAR(300),
+	Survey CHAR(300),
+	Lot CHAR(100),
+	Block CHAR(100),
+    OriginalSection NVARCHAR(255),
+    BriefLegal NVARCHAR(MAX),
+    SectionValue NVARCHAR(255),
+	Township CHAR(50),
+	RangeOrBLock VARCHAR(22),
+	AbstractName INT,
+	Suffix CHAR(50),
+	QuarterCalls CHAR(500),
+	EntryDate DATETIME, 
+	oldLandID INT, 
+	_CreatedDateTime DATETIME, 
+	_CreatedBY VARCHAR(75), 
+	_ModifiedDateTime DATETIME, 
+	_ModifiedBy VARCHAR(75), 
+	AutoGenDate DATETIME, 
+	SubdivisionNameId INT, 
+	IsDeleted BIT
+);
+
+-- Insert the split values into the temporary table
+INSERT INTO #SplitSections (landDescriptionId, recordID, CountyID, Subdivision, Survey, Lot, Block, OriginalSection, BriefLegal, SectionValue, Township, RangeOrBlock, AbstractName, Suffix, QuarterCalls, EntryDate, oldLandID, _CreatedDateTime, _CreatedBY, _ModifiedDateTime, _ModifiedBy, AutoGenDate, SubdivisionNameId, IsDeleted)
+SELECT 
+    ld.landDescriptionId,
+	ld.recordID,
+	ld.CountyID,
+	ld.Subdivision,
+	ld.Survey,
+	ld.Lot,
+	ld.Block,
+    ld.Section, 
+    ld.BriefLegal,
+    LTRIM(RTRIM(s.value)) AS SectionValue,
+	ld.Township,
+	ld.RangeOrBlock,
+	ld.AbstractName,
+	ld.Suffix,
+	ld.QuarterCalls,
+	ld.EntryDate,
+	ld.oldLandID,
+	ld._CreatedDateTime,
+	ld._CreatedBy,
+	ld._ModifiedDateTime,
+	ld._ModifiedBy,
+	ld.AutoGenDate,
+	ld.SubdivisionNameId,
+	ld.IsDeleted
+FROM countyScansTitle.dbo.LND_6838_tbllandDescription ld
+CROSS APPLY STRING_SPLIT(ld.Section, ',') s
+WHERE ld.Section LIKE '%,%';
+
 SELECT *
-FROM countyScansTitle.dbo.LND_6838_temp_table
+FROM #SplitSections
+
+-- Delete the records with multiple sections from the original table
+DELETE FROM countyScansTitle.dbo.LND_6838_tbllandDescription
+WHERE Section LIKE '%,%';
+
+-- Insert the split records back into the original table
+INSERT INTO countyScansTitle.dbo.LND_6838_tbllandDescription (
+    landDescriptionId,
+	recordID,
+	CountyID,
+	Subdivision,
+	Survey,
+	Lot,
+	Block,
+    Section,
+	Township,
+	RangeOrBlock,
+	AbstractName,
+	Suffix,
+	QuarterCalls,
+    BriefLegal,
+	EntryDate,
+	oldLandID,
+	_CreatedDateTime,
+	_CreatedBy,
+	_ModifiedDateTime,
+	_ModifiedBy,
+	AutoGenDate,
+	SubdivisionNameId,
+	IsDeleted
+)
+SELECT 
+    ss.landDescriptionId,
+	ss.recordID,
+	ss.CountyID,
+	ss.Subdivision,
+	ss.Survey,
+	ss.Lot,
+	ss.Block,
+    ss.SectionValue,
+	ss.Township,
+	ss.RangeOrBlock,
+	ss.AbstractName,
+	ss.Suffix,
+	ss.QuarterCalls,
+    ss.BriefLegal,
+	ss.EntryDate,
+	ss.oldLandID,
+	ss._CreatedDateTime,
+	ss._CreatedBy,
+	ss._ModifiedDateTime,
+	ss._ModifiedBy,
+	ss.AutoGenDate,
+	ss.SubdivisionNameId,
+	ss.IsDeleted
+FROM #SplitSections ss;
+
+-- Drop the temporary table when finished
+DROP TABLE #SplitSections;
+
+SELECT TOP 1000 *
+FROM countyScansTitle.dbo.LND_6838_tbllandDescription ld
+WHERE Section IS NOT NULL
+
+SELECT TOP 1000 *
+FROM countyScansTitle.dbo.LND_6838_tbllandDescription ld
+CROSS APPLY STRING_SPLIT(ld.Section, ',') s
+WHERE ld.Section LIKE '%,%';
+
+
+-- Rollback the transaction (for testing purposes)
+--ROLLBACK TRAN;
+-- Uncomment the following line to commit the transaction
+COMMIT TRAN;
+
+-- Check transaction count and state
+SELECT @@TRANCOUNT, XACT_STATE();
+
+
+
+-- Explode QuarterCalls Values
+-- Create a temporary table to store the split QuarterCalls
+SET XACT_ABORT ON;
+BEGIN TRAN;
+
+IF OBJECT_ID(N'tempdb..#SplitQuarterCalls', 'U') IS NOT NULL
+	DROP TABLE #SplitQuarterCalls;
+
+CREATE TABLE #SplitQuarterCalls (
+    landDescriptionID NVARCHAR(40),
+	recordID VARCHAR(36),
+	CountyID INT,
+	Subdivision CHAR(300),
+	Survey CHAR(300),
+	Lot CHAR(100),
+	Block CHAR(100),
+	Section CHAR(50),
+	Township CHAR(50),
+	RangeOrBlock VARCHAR(22),
+	AbstractName INT,
+	Suffix CHAR(50),
+	QuarterCallValue NVARCHAR(255),
+	QuarterCalls CHAR(500),
+    BriefLegal NVARCHAR(MAX),
+	EntryDate DATETIME, 
+	oldLandID INT, 
+	_CreatedDateTime DATETIME, 
+	_CreatedBy VARCHAR(75), 
+	_ModifiedDateTime DATETIME, 
+	_ModifiedBy VARCHAR(75), 
+	AutoGenDate DATETIME, 
+	SubdivisionNameId INT, 
+	IsDeleted BIT
+);
+
+-- Insert the split values into the temporary table
+INSERT INTO #SplitQuarterCalls (
+	landDescriptionId, recordID, CountyID, Subdivision, Survey, Lot, Block, 
+	Section, Township, RangeOrBlock, AbstractName, Suffix, QuarterCallValue, QuarterCalls,
+	BriefLegal, EntryDate, oldLandID, _CreatedDateTime, _CreatedBy, 
+	_ModifiedDateTime, _ModifiedBy, AutoGenDate, SubdivisionNameId, IsDeleted)
+SELECT 
+    ld.landDescriptionId,
+	ld.recordID,
+	ld.CountyID,
+	ld.Subdivision,
+	ld.Survey,
+	ld.Lot,
+	ld.Block,
+	ld.Section,
+	ld.Township,
+	ld.RangeOrBlock,
+	ld.AbstractName,
+	ld.Suffix,
+    LTRIM(RTRIM(s.value)) AS QuarterCallValue,
+    ld.QuarterCalls, 
+    ld.BriefLegal,
+	ld.EntryDate,
+	ld.oldLandID,
+	ld._CreatedDateTime,
+	ld._CreatedBy,
+	ld._ModifiedDateTime,
+	ld._ModifiedBy,
+	ld.AutoGenDate,
+	ld.SubdivisionNameId,
+	ld.IsDeleted
+FROM countyScansTitle.dbo.LND_6838_tbllandDescription ld
+CROSS APPLY STRING_SPLIT(ld.QuarterCalls, ',') s
+WHERE ld.QuarterCalls LIKE '%,%';
 
 SELECT *
-INTO countyScansTitle.dbo.LND_6838_tbllandDescription_backup
-FROM countyScansTitle.dbo.LND_6838_tbllandDescription
+FROM #SplitQuarterCalls
+ORDER BY landDescriptionID
 
-IF OBJECT_ID(N'countyScansTitle.dbo.LND_6838_tbllandDescription_20250519') IS NOT NULL
-	DROP TABLE countyScansTitle.dbo.LND_6838_tbllandDescription_20250519;
+-- Delete the records with multiple QuarterCalls from the original table
+DELETE FROM countyScansTitle.dbo.LND_6838_tbllandDescription
+WHERE QuarterCalls LIKE '%,%';
 
-SELECT *
-INTO countyScansTitle.dbo.LND_6838_tbllandDescription_20250519
-FROM countyScansTitle.dbo.LND_6838_tbllandDescription
-WHERE BriefLegal IS NOT NULL AND BriefLegal != ''
+-- Insert the split records back into the original table
+INSERT INTO countyScansTitle.dbo.LND_6838_tbllandDescription (
+    landDescriptionId, recordID, CountyID, Subdivision, Survey, Lot, Block, 
+    Section, Township, RangeOrBlock, AbstractName, Suffix, 
+    QuarterCalls, BriefLegal, EntryDate, oldLandID, _CreatedDateTime, 
+    _CreatedBy, _ModifiedDateTime, _ModifiedBy, AutoGenDate, SubdivisionNameId, IsDeleted
+)
+SELECT 
+    sq.landDescriptionId,
+	sq.recordID,
+	sq.CountyID,
+	sq.Subdivision,
+	sq.Survey,
+	sq.Lot,
+	sq.Block,
+	sq.Section,
+	sq.Township,
+	sq.RangeOrBlock,
+	sq.AbstractName,
+	sq.Suffix,
+	sq.QuarterCallValue,
+    sq.BriefLegal,
+	sq.EntryDate,
+	sq.oldLandID,
+	sq._CreatedDateTime,
+	sq._CreatedBy,
+	sq._ModifiedDateTime,
+	sq._ModifiedBy,
+	sq.AutoGenDate,
+	sq.SubdivisionNameId,
+	sq.IsDeleted
+FROM #SplitQuarterCalls sq;
 
+-- Drop the temporary table when finished
+DROP TABLE #SplitQuarterCalls;
 
-SELECT COUNT(*)
-FROM countyScansTitle.dbo.LND_6838_tbllandDescription_20250519
-
-SELECT BriefLegal, *
-FROM countyScansTitle.dbo.LND_6838_tbllandDescription_20250519
-WHERE (BriefLegal LIKE ('%NE4%') OR BriefLegal LIKE ('%NW4%') 
-    OR BriefLegal LIKE ('%SE4%') OR BriefLegal LIKE ('%SW4%')
-	OR BriefLegal LIKE ('%S2%')  OR BriefLegal LIKE ('%N2%')
-	OR BriefLegal LIKE ('%E2%')  OR BriefLegal LIKE ('%W2%')
-	
-	OR BriefLegal LIKE ('%NE/4%') OR BriefLegal LIKE ('%NW/4%') 
-    OR BriefLegal LIKE ('%SE/4%') OR BriefLegal LIKE ('%SW/4%')
-	OR BriefLegal LIKE ('%S/2%')  OR BriefLegal LIKE ('%N/2%')
-	OR BriefLegal LIKE ('%E/2%')  OR BriefLegal LIKE ('%W/2%'))
-
-
-
-
-SELECT BriefLegal, *
-FROM countyScansTitle.dbo.LND_6838_tbllandDescription_20250519
-WHERE recordID NOT IN (SELECT recordID FROM countyScansTitle.dbo.LND_6838_tbllandDescription_20250519 
-WHERE (BriefLegal LIKE ('%NE4%') OR BriefLegal LIKE ('%NW4%') 
-    OR BriefLegal LIKE ('%SE4%') OR BriefLegal LIKE ('%SW4%')
-	OR BriefLegal LIKE ('%S2%')  OR BriefLegal LIKE ('%N2%')
-	OR BriefLegal LIKE ('%E2%')  OR BriefLegal LIKE ('%W2%')
-	
-	OR BriefLegal LIKE ('%NE/4%') OR BriefLegal LIKE ('%NW/4%') 
-    OR BriefLegal LIKE ('%SE/4%') OR BriefLegal LIKE ('%SW/4%')
-	OR BriefLegal LIKE ('%S/2%')  OR BriefLegal LIKE ('%N/2%')
-	OR BriefLegal LIKE ('%E/2%')  OR BriefLegal LIKE ('%W/2%')
-
-	OR BriefLegal LIKE ('%SWNW%') OR BriefLegal LIKE ('%SWNE%')
-	OR BriefLegal LIKE ('%SWSW%') OR BriefLegal LIKE ('%SWSE%') 
-	OR BriefLegal LIKE ('%NWNW%') OR BriefLegal LIKE ('%NWNE%') 
-	OR BriefLegal LIKE ('%NWSW%') OR BriefLegal LIKE ('%NWSE%')))
-
+SELECT TOP 1000 *
+FROM countyScansTitle.dbo.LND_6838_tbllandDescription ld
+WHERE QuarterCalls IS NOT NULL
 
 SELECT *
-FROM countyScansTitle.dbo.LND_6838_temp_table
-WHERE landDescriptionID IN (SELECT landDescriptionID FROM countyScansTitle.dbo.LND_6838_tbllandDescription_20250519)
+FROM countyScansTitle.dbo.LND_6838_tbllandDescription ld
+CROSS APPLY STRING_SPLIT(ld.QuarterCalls, ',') s
+WHERE ld.QuarterCalls LIKE '%,%';
 
-ALTER TABLE countyScansTitle.dbo.LND_6838_tbllandDescription
-ALTER COLUMN Lot char(100);
+-- Rollback the transaction (for testing purposes)
+--ROLLBACK TRAN;
+-- Uncomment the following line to commit the transaction
+COMMIT TRAN;
 
--- Need to investigate and modify records with Lot LEN() > 50
+-- Check transaction count and state
+SELECT @@TRANCOUNT, XACT_STATE();
 
-SELECT TOP 1 *
-FROM countyScansTitle.dbo.LND_6838_tbllandDescription_20250519
+
+-- Explode Lot Values
+SET XACT_ABORT ON;
+BEGIN TRAN;
+
+IF OBJECT_ID(N'tempdb..#SplitLots', 'U') IS NOT NULL
+	DROP TABLE #SplitLots;
+
+CREATE TABLE #SplitLots (
+    landDescriptionID NVARCHAR(40),
+	recordID VARCHAR(36),
+	CountyID INT,
+	Subdivision CHAR(300),
+	Survey CHAR(300),
+	Lot CHAR(100),
+	Block CHAR(100),
+	Section CHAR(50),
+	Township CHAR(50),
+	RangeOrBlock VARCHAR(22),
+	AbstractName INT,
+	Suffix CHAR(50),
+	QuarterCalls CHAR(500),
+    BriefLegal NVARCHAR(MAX),
+	EntryDate DATETIME, 
+	oldLandID INT, 
+	_CreatedDateTime DATETIME, 
+	_CreatedBy VARCHAR(75), 
+	_ModifiedDateTime DATETIME, 
+	_ModifiedBy VARCHAR(75), 
+	AutoGenDate DATETIME, 
+	SubdivisionNameId INT, 
+	IsDeleted BIT
+);
+
+-- Insert the split values into the temporary table
+INSERT INTO #SplitLots (
+	landDescriptionId, recordID, CountyID, Subdivision, Survey, Lot, Block, 
+	Section, Township, RangeOrBlock, AbstractName, Suffix, QuarterCalls,
+	BriefLegal, EntryDate, oldLandID, _CreatedDateTime, _CreatedBy, 
+	_ModifiedDateTime, _ModifiedBy, AutoGenDate, SubdivisionNameId, IsDeleted)
+SELECT 
+    ld.landDescriptionId,
+	ld.recordID,
+	ld.CountyID,
+	ld.Subdivision,
+	ld.Survey,
+	LTRIM(RTRIM(lotSplit.value)) AS Lot,
+	ld.Block,
+	ld.Section,
+	ld.Township,
+	ld.RangeOrBlock,
+	ld.AbstractName,
+	ld.Suffix,
+    ld.QuarterCalls, 
+    ld.BriefLegal,
+	ld.EntryDate,
+	ld.oldLandID,
+	ld._CreatedDateTime,
+	ld._CreatedBy,
+	ld._ModifiedDateTime,
+	ld._ModifiedBy,
+	ld.AutoGenDate,
+	ld.SubdivisionNameId,
+	ld.IsDeleted
+FROM countyScansTitle.dbo.LND_6838_tbllandDescription ld
+CROSS APPLY STRING_SPLIT(ld.Lot, ',') lotSplit
+WHERE ld.Lot LIKE '%,%';
+
+SELECT *
+FROM #SplitLots
+ORDER BY landDescriptionID;
+
+-- Delete the records with multiple Lots from the original table
+DELETE FROM countyScansTitle.dbo.LND_6838_tbllandDescription
+WHERE Lot LIKE '%,%';
+
+-- Insert the split records back into the original table
+INSERT INTO countyScansTitle.dbo.LND_6838_tbllandDescription (
+    landDescriptionId, recordID, CountyID, Subdivision, Survey, Lot, Block, 
+    Section, Township, RangeOrBlock, AbstractName, Suffix, 
+    QuarterCalls, BriefLegal, EntryDate, oldLandID, _CreatedDateTime, 
+    _CreatedBy, _ModifiedDateTime, _ModifiedBy, AutoGenDate, SubdivisionNameId, IsDeleted
+)
+SELECT 
+    sq.landDescriptionId,
+	sq.recordID,
+	sq.CountyID,
+	sq.Subdivision,
+	sq.Survey,
+	sq.Lot,
+	sq.Block,
+	sq.Section,
+	sq.Township,
+	sq.RangeOrBlock,
+	sq.AbstractName,
+	sq.Suffix,
+	sq.QuarterCalls,
+    sq.BriefLegal,
+	sq.EntryDate,
+	sq.oldLandID,
+	sq._CreatedDateTime,
+	sq._CreatedBy,
+	sq._ModifiedDateTime,
+	sq._ModifiedBy,
+	sq.AutoGenDate,
+	sq.SubdivisionNameId,
+	sq.IsDeleted
+FROM #SplitLots sq;
+
+-- Drop the temporary table when finished
+DROP TABLE #SplitLots;
+
+SELECT TOP 1000 *
+FROM countyScansTitle.dbo.LND_6838_tbllandDescription ld
+WHERE Lot IS NOT NULL;
+
+SELECT *
+FROM countyScansTitle.dbo.LND_6838_tbllandDescription ld
+CROSS APPLY STRING_SPLIT(ld.Lot, ',') lotSplit
+WHERE ld.Lot LIKE '%,%';
+
+-- Rollback the transaction (for testing purposes)
+--ROLLBACK TRAN;
+-- Uncomment the following line to commit the transaction
+COMMIT TRAN;
+
+-- Check transaction count and state
+SELECT @@TRANCOUNT, XACT_STATE();
+
 
 -- QA Section
+SELECT COUNT(*)
+FROM countyScansTitle.dbo.LND_6838_tbllandDescription
+
+
+-- QA'ed, Subdivision has varying lengths of whitespace, should this be normalized?
 SELECT DISTINCT Subdivision, COUNT(*)
-FROM countyScansTitle.dbo.LND_6838_tbllandDescription_20250519
+FROM countyScansTitle.dbo.LND_6838_tbllandDescription
 GROUP BY Subdivision
 ORDER BY COUNT(*) DESC
 
+-- QA'ed
 SELECT DISTINCT Survey, COUNT(*)
-FROM countyScansTitle.dbo.LND_6838_tbllandDescription_20250519
+FROM countyScansTitle.dbo.LND_6838_tbllandDescription
 GROUP BY Survey
 ORDER BY COUNT(*) DESC
 
+-- QA'ed
 SELECT DISTINCT Lot, COUNT(*)
-FROM countyScansTitle.dbo.LND_6838_tbllandDescription_20250519
+FROM countyScansTitle.dbo.LND_6838_tbllandDescription
 GROUP BY Lot
 ORDER BY COUNT(*) DESC
 
+-- QA'ed
 SELECT DISTINCT Block, COUNT(*)
-FROM countyScansTitle.dbo.LND_6838_tbllandDescription_20250519
+FROM countyScansTitle.dbo.LND_6838_tbllandDescription
 GROUP BY Block
 ORDER BY COUNT(*) DESC
 
-SELECT DISTINCT Section, COUNT(*)
-FROM countyScansTitle.dbo.LND_6838_tbllandDescription_20250519
-GROUP BY Section
+-- Section contains values with Comma's
+-- Need to create a new row for each section
+-- Section needs to be a float
+SELECT DISTINCT Section, BriefLegal, COUNT(*)
+FROM countyScansTitle.dbo.LND_6838_tbllandDescription
+WHERE Section LIKE '%,%'
+GROUP BY Section, BriefLegal
 ORDER BY COUNT(*) DESC
 
+-- QA'ed
 SELECT DISTINCT Township, COUNT(*)
-FROM countyScansTitle.dbo.LND_6838_tbllandDescription_20250519
+FROM countyScansTitle.dbo.LND_6838_tbllandDescription
 GROUP BY Township
 ORDER BY COUNT(*) DESC
 
+-- QA'ed
 SELECT DISTINCT RangeOrBlock, COUNT(*)
-FROM countyScansTitle.dbo.LND_6838_tbllandDescription_20250519
+FROM countyScansTitle.dbo.LND_6838_tbllandDescription
 GROUP BY RangeorBlock
 ORDER BY COUNT(*) DESC
 
+-- QA'ed
 SELECT DISTINCT AbstractName, COUNT(*)
-FROM countyScansTitle.dbo.LND_6838_tbllandDescription_20250519
+FROM countyScansTitle.dbo.LND_6838_tbllandDescription
 GROUP BY AbstractName
 ORDER BY COUNT(*) DESC
 
+-- No Records
 SELECT DISTINCT Suffix, COUNT(*)
-FROM countyScansTitle.dbo.LND_6838_tbllandDescription_20250519
+FROM countyScansTitle.dbo.LND_6838_tbllandDescription
 GROUP BY Suffix
 ORDER BY COUNT(*) DESC
 
+-- Verify with Lindsey whether we should explode the quartercalls
+-- Check other columns that might need to be exploded
 SELECT DISTINCT QuarterCalls, COUNT(*)
-FROM countyScansTitle.dbo.LND_6838_tbllandDescription_20250519
+FROM countyScansTitle.dbo.LND_6838_tbllandDescription
 GROUP BY QuarterCalls
 ORDER BY COUNT(*) DESC
 
+-- Need to update the QuarterCallsFull if QuarterCalls IS NOT NULL
+SELECT DISTINCT QuarterCallsFull, COUNT(*)
+FROM countyScansTitle.dbo.LND_6838_tbllandDescription
+GROUP BY QuarterCallsFull
+ORDER BY COUNT(*) DESC
+
+
+-- No Records
 SELECT DISTINCT AcreageByTract, COUNT(*)
-FROM countyScansTitle.dbo.LND_6838_tbllandDescription_20250519
+FROM countyScansTitle.dbo.LND_6838_tbllandDescription
 GROUP BY AcreageByTract
 ORDER BY COUNT(*) DESC
+
+
+
+-- Total Count: 1,054,161
+-- QuaterCalls Count: 520,824
+SELECT COUNT(*)
+FROM countyScansTitle.dbo.LND_6838_tbllandDescription
+WHERE QuarterCalls != ''
+
+-- Total Count: 1,054,161
+-- Subdivision Count: 325,786
+SELECT COUNT(*)
+FROM countyScansTitle.dbo.LND_6838_tbllandDescription
+WHERE Subdivision != ''
+
+
+SELECT BriefLegal, *
+FROM countyScansTitle.dbo.LND_6838_tbllandDescription
+WHERE Subdivision = ''
+AND Survey = ''
+AND Lot = ''
+AND Block = ''
+AND Section = ''
+AND Township = ''
+AND Suffix = ''
+AND QuarterCalls = ''
+
+SELECT BriefLegal, *
+FROM countyScansTitle.dbo.LND_6838_tbllandDescription
+WHERE Subdivision != ''
+OR Survey != ''
+OR Lot != ''
+OR Block != ''
+OR Section != ''
+OR Township != ''
+OR Suffix != ''
+OR QuarterCalls != ''
+ORDER BY QuarterCalls
+
+
+-- Create query to change Section column to Float, can use TRY_CAST
+-- Lindsey recommends moving these into QuarterCalls/Lots/etc.
+-- 
+select BriefLegal, count(*)
+from countyScansTitle.dbo.LND_6838_tbllandDescription
+where BriefLegal is not null 
+and subdivision = '' 
+and Survey = '' 
+and AbstractName is null 
+and lot = ''
+and block = '' 
+and section = '' 
+and Township = '' 
+and RangeOrBlock = '' 
+and AcreageByTract = '' 
+and QuarterCalls = ''
+group by BriefLegal
+order by count(*) desc

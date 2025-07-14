@@ -17,8 +17,8 @@ GO
 SET XACT_ABORT ON;
 BEGIN TRAN;
 
---IF OBJECT_ID('countyScansTitle.dbo.LND_6836_tbldeedReferenceVolumePage', 'U') IS NOT NULL
---    DROP TABLE countyScansTitle.dbo.LND_6836_tbldeedReferenceVolumePage;
+IF OBJECT_ID('countyScansTitle.dbo.LND_6836_tbldeedReferenceVolumePage', 'U') IS NOT NULL
+    DROP TABLE countyScansTitle.dbo.LND_6836_tbldeedReferenceVolumePage;
 
 -- 3,802,980 Records are updated in tblrecord
 DECLARE @currentDateTime DATETIME = GETDATE();
@@ -30,23 +30,62 @@ SELECT
 	@currentDateTime AS _CreatedDateTime,
 	'LND-6836' AS _CreatedBy,
 	@currentDateTime AS _ModifiedDateTime,
+	'LND-6836' AS _ModifiedBy,
 	NULL AS Consideration,
 	LOWER(NEWID()) AS priorrefid,
 	0 AS IsDeleted
 INTO countyScansTitle.dbo.LND_6836_tbldeedReferenceVolumePage
 FROM countyScansTitle.dbo.tblrecord tr
-INNER JOIN countyScansTitle.dbo.tblExportLog tel ON tr.recordID = tel.recordID
-INNER JOIN [AUS2-DIV1-DDB01].[div1_daily].[dbo].[tblLegalLease] tll ON tel.LeaseID = tll.LeaseID
+JOIN countyScansTitle.dbo.tblExportLog tel ON tr.recordID = tel.recordID
+JOIN [AUS2-DIV1-DDB01].[div1_daily].[dbo].[tblLegalLease] tll ON tel.LeaseID = tll.LeaseID
 WHERE tll.deedVol IS NOT NULL AND tll.deedVol != '' AND tll.deedPg != '' AND tll.deedPg IS NOT NULL
-AND CONVERT(varchar, tr.receivedDate, 23) = '2025-05-06';
+AND tr.remarks LIKE '%LND-6732%';
 
 -- Rollback the transaction (for testing purposes)
-ROLLBACK TRAN;
+--ROLLBACK TRAN;
 -- Uncomment the following line to commit the transaction
---COMMIT TRAN;
+COMMIT TRAN;
 
 -- Check transaction count and state
 SELECT @@TRANCOUNT, XACT_STATE();
+
+
+-- Insert New Records Into tbldeedReferenceVolumePage
+SET XACT_ABORT ON;
+BEGIN TRAN;
+
+INSERT INTO [countyScansTitle].[dbo].[tbldeedReferenceVolumePage] (
+    [recordID],
+    [drVolume],
+    [drPage],
+    [drbookType],
+    [_CreatedDateTime],
+    [_CreatedBy],
+    [_ModifiedDateTime],
+    [_ModifiedBy],
+    [Consideration],
+    [priorrefid],
+    [IsDeleted]
+)
+SELECT
+    src.[recordID],
+    src.[drVolume],
+    src.[drPage],
+    src.[drbookType],
+    src.[_CreatedDateTime],
+    src.[_CreatedBy],
+    src.[_ModifiedDateTime],
+    src.[_ModifiedBy],
+    src.[Consideration],
+    src.[priorrefid],
+    src.[IsDeleted]
+FROM [countyScansTitle].[dbo].[LND_6836_tbldeedReferenceVolumePage] src;
+
+--ROLLBACK TRAN; -- For testing
+COMMIT TRAN;   -- Uncomment to commit
+
+SELECT @@TRANCOUNT, XACT_STATE();
+
 
 
 -- QA Section
@@ -54,15 +93,13 @@ SELECT @@TRANCOUNT, XACT_STATE();
 /*
 To debug why the query only returns 1.2 million records instead of the expected 3.8 million records, you can create a query that analyzes each filtering condition (`WHERE`, `INNER JOIN`, etc.) and identifies which step is reducing the record count. The following query will help break down and count records at each stage of filtering:
 
-```sql
 -- Step 1: Count total records in tblrecord
 SELECT COUNT(*) AS TotalRecords_tblrecord
 FROM countyScansTitle.dbo.tblrecord tr
-WHERE CONVERT(varchar, tr.receivedDate, 23) = '2025-04-07';
+WHERE remarks LIKE '%LND-6732%';
 
 TotalRecords_tblrecord
-3751396
-
+3,790,616
 
 -- Step 2: Count records after applying INNER JOIN with tblExportLog
 SELECT COUNT(DISTINCT tr.recordID) AS Records_After_Join_tblExportLog
@@ -70,39 +107,29 @@ FROM countyScansTitle.dbo.tblrecord tr
 INNER JOIN countyScansTitle.dbo.tblExportLog tel ON tr.recordID = tel.recordID;
 
 Records_After_Join_tblExportLog
-5049465
+5,066,887
 
--- Step 3: Count records after INNER JOIN with tblLegalLease
+-- Step 3: Count records after JOIN with tblLegalLease
 SELECT COUNT(DISTINCT tr.recordID) AS Records_After_Join_tblLegalLease
 FROM countyScansTitle.dbo.tblrecord tr
-INNER JOIN countyScansTitle.dbo.tblExportLog tel ON tr.recordID = tel.recordID
-INNER JOIN [AUS2-DIV1-DDB01].[div1_daily].[dbo].[tblLegalLease] tll ON tel.LeaseID = tll.LeaseID;
+JOIN countyScansTitle.dbo.tblExportLog tel ON tr.recordID = tel.recordID
+JOIN [AUS2-DIV1-DDB01].[div1_daily].[dbo].[tblLegalLease] tll ON tel.LeaseID = tll.LeaseID;
 
 Records_After_Join_tblLegalLease
-4969971
+4,969,971
 
 -- Step 4: Count records where deedVol and deedPg are not NULL or empty
 SELECT COUNT(DISTINCT tr.recordID) AS Records_With_Valid_DeedVol_DeedPg
 FROM countyScansTitle.dbo.tblrecord tr
-INNER JOIN countyScansTitle.dbo.tblExportLog tel ON tr.recordID = tel.recordID
-INNER JOIN [AUS2-DIV1-DDB01].[div1_daily].[dbo].[tblLegalLease] tll ON tel.LeaseID = tll.LeaseID
+JOIN countyScansTitle.dbo.tblExportLog tel ON tr.recordID = tel.recordID
+JOIN [AUS2-DIV1-DDB01].[div1_daily].[dbo].[tblLegalLease] tll ON tel.LeaseID = tll.LeaseID
 WHERE tll.deedVol IS NOT NULL AND tll.deedVol != '' AND tll.deedPg IS NOT NULL AND tll.deedPg != '';
 
 Records_With_Valid_DeedVol_DeedPg
-1960942
-
--- Step 5: Count records after filtering by receivedDate
-SELECT COUNT(DISTINCT tr.recordID) AS Records_With_ReceivedDate
-FROM countyScansTitle.dbo.tblrecord tr
-INNER JOIN countyScansTitle.dbo.tblExportLog tel ON tr.recordID = tel.recordID
-INNER JOIN [AUS2-DIV1-DDB01].[div1_daily].[dbo].[tblLegalLease] tll ON tel.LeaseID = tll.LeaseID
-WHERE tll.deedVol IS NOT NULL AND tll.deedVol != '' AND tll.deedPg IS NOT NULL AND tll.deedPg != ''
-AND CONVERT(varchar, tr.receivedDate, 23) = '2025-04-07';
-```
+1,964,542
 
 ---
-
-### Explanation of Each Step:
+Explanation of Each Step:
 1. **Step 1: Total Records in `tblrecord`**:
    - Counts all records in the `tblrecord` table to establish the starting point.
 
@@ -114,10 +141,6 @@ AND CONVERT(varchar, tr.receivedDate, 23) = '2025-04-07';
 
 4. **Step 4: Filtering by `deedVol` and `deedPg`**:
    - Applies the filter for `deedVol` and `deedPg` being non-NULL and non-empty.
-
-5. **Step 5: Filtering by `receivedDate`**:
-   - Applies the final filter for `receivedDate` to match `'2025-04-07'`.
-
 ---
 
 ### Analysis:
