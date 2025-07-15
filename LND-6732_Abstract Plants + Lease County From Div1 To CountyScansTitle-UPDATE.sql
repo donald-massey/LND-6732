@@ -537,6 +537,10 @@ SELECT
 		THEN 29
 		WHEN TermMonths BETWEEN 360 AND 371
 		THEN 30
+		WHEN TermMonths = 600
+		THEN 50
+		WHEN TermMonths = 1188
+		THEN 99
 	ELSE NULL
 	END AS TermLength,								-- TermLength, DIV1
 	0,												-- TermType, Default Value
