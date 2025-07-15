@@ -240,7 +240,7 @@ FROM
 -- Gather 100 records in tblrecord that Ryan mapped and 100 of the records you're mapping
 -- Set a value to index the records so you can sort in groups
 
---Investigate TermLength + TermType, 
+-- Investigate 
 SELECT TOP 100 tr.*
 FROM countyScansTitle.dbo.tblrecord tr 
 JOIN countyScansTitle.dbo.tblexportLog tel ON tel.recordID = tr.recordID

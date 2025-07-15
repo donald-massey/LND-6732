@@ -472,35 +472,72 @@ SELECT
     CAST(div1.extensionBonus AS INT),				-- ExtensionBonus, DIV1
     div1.isBlm, 									-- ExtensionBLM, DIV1
     div1.isState, 									-- ExtensionState, DIV1
-	CASE
-		WHEN div1.TermMonths IS NULL
+  	CASE
+		WHEN TermMonths IS NULL
 		THEN NULL
-		WHEN div1.TermMonths = 0
+		WHEN TermMonths = 0
 		THEN 0
-		WHEN div1.TermMonths = 12
+		WHEN TermMonths BETWEEN 12 AND 23
 		THEN 1
-		WHEN div1.TermMonths = 24
+		WHEN TermMonths BETWEEN 24 AND 35
 		THEN 2
-		WHEN div1.TermMonths = 36
+		WHEN TermMonths BETWEEN 36 AND 47
 		THEN 3
-		WHEN div1.TermMonths = 48
+		WHEN TermMonths BETWEEN 48 AND 59
 		THEN 4
-		WHEN div1.TermMonths = 60
+		WHEN TermMonths BETWEEN 60 AND 71
 		THEN 5
-		WHEN div1.TermMonths = 72
+		WHEN TermMonths BETWEEN 72 AND 83
 		THEN 6
-		WHEN div1.TermMonths = 84
+		WHEN TermMonths BETWEEN 84 AND 95
 		THEN 7
-		WHEN div1.TermMonths = 96
+		WHEN TermMonths BETWEEN 96 AND 107
 		THEN 8
-		WHEN div1.TermMonths = 108
+		WHEN TermMonths BETWEEN 108 AND 119
 		THEN 9
-		WHEN div1.TermMonths = 120
+		WHEN TermMonths BETWEEN 120 AND 131
 		THEN 10
-		WHEN div1.TermMonths = 132
+		WHEN TermMonths BETWEEN 132 AND 143
 		THEN 11
-		WHEN div1.TermMonths = 144
+		WHEN TermMonths BETWEEN 144 AND 155
 		THEN 12
+		WHEN TermMonths BETWEEN 156 AND 167
+		THEN 13
+		WHEN TermMonths BETWEEN 168 AND 179
+		THEN 14
+		WHEN TermMonths BETWEEN 180 AND 191
+		THEN 15
+		WHEN TermMonths BETWEEN 192 AND 203
+		THEN 16
+		WHEN TermMonths BETWEEN 204 AND 215
+		THEN 17
+		WHEN TermMonths BETWEEN 216 AND 227
+		THEN 18
+		WHEN TermMonths BETWEEN 228 AND 239
+		THEN 19
+		WHEN TermMonths BETWEEN 240 AND 251
+		THEN 20
+		WHEN TermMonths BETWEEN 252 AND 263
+		THEN 21
+		WHEN TermMonths BETWEEN 264 AND 275
+		THEN 22
+		WHEN TermMonths BETWEEN 276 AND 287
+		THEN 23
+		WHEN TermMonths BETWEEN 288 AND 299
+		THEN 24
+		WHEN TermMonths BETWEEN 300 AND 311
+		THEN 25
+		WHEN TermMonths BETWEEN 312 AND 323
+		THEN 26
+		WHEN TermMonths BETWEEN 324 AND 335
+		THEN 27
+		WHEN TermMonths BETWEEN 336 AND 347
+		THEN 28
+		WHEN TermMonths BETWEEN 348 AND 359
+		THEN 29
+		WHEN TermMonths BETWEEN 360 AND 371
+		THEN 30
+	ELSE NULL
 	END AS TermLength,								-- TermLength, DIV1
 	0,												-- TermType, Default Value
     0,												-- TermAvailable, Default Value
