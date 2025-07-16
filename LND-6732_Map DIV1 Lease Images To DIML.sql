@@ -34,16 +34,8 @@ SELECT
    ,fileSizeBytes
    ,_ModifiedDateTime
    ,_ModifiedBy
-SELECT TOP 1 *
-SELECT COUNT(*)
 FROM countyScansTitle.dbo.LND_6732_tblS3Image_20250506;
 
-SELECT volume, page, *
-FROM countyScansTitle.dbo.tblrecord
-WHERE recordid = '000000d8-fa3b-4b25-b658-fea92ef0cdbe'
-
--- Add a query to check the results post update
-    
 
 -- Rollback the transaction (for testing purposes)
 ROLLBACK TRAN;
