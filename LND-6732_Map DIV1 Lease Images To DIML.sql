@@ -18,7 +18,7 @@ GO
 SET XACT_ABORT ON;
 BEGIN TRAN;
 
--- Query to update tbllandDescription using LND_6732_tblS3Image_20250717
+-- Query to update tbllandDescription using LND_6732_20250717
 INSERT INTO dbo.tblS3Image (
     recordID
    ,s3FilePath
@@ -34,7 +34,7 @@ SELECT
    ,fileSizeBytes
    ,_ModifiedDateTime
    ,_ModifiedBy
-FROM countyScansTitle.dbo.LND_6732_tblS3Image_20250717;
+FROM countyScansTitle.dbo.LND_6732_20250717;
 
 
 -- Rollback the transaction (for testing purposes)
