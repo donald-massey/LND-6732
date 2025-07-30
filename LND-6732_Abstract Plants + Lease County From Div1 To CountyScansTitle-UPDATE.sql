@@ -156,7 +156,22 @@ JOIN #LND_6732_cst_values cst ON tel.recordID = cst.recordID
 JOIN #LND_6732_div1_values div1 ON div1.recordNumber = cst.recordNumber
                                AND div1.RecordDate = cst.fileDate
                                AND div1.CountyName = cst.countyName
-WHERE tel.LeaseID IS NULL;
+WHERE tel.LeaseID IS NULL AND (_CreatedBy IS NOT NULL AND _ModifiedBy IS NOT NULL);
+
+UPDATE tel
+SET 
+    tel.LeaseID = div1.LeaseID,
+	tel.zipName = 'LND-6732(1)',
+	tel._CreatedBy = 'LND-6732(1)',
+    tel._ModifiedDateTime = GETDATE(),
+	tel._ModifiedBy = 'LND-6732(1)'
+FROM countyScansTitle.dbo.tblexportLog tel
+JOIN #LND_6732_cst_values cst ON tel.recordID = cst.recordID
+JOIN #LND_6732_div1_values div1 ON div1.recordNumber = cst.recordNumber
+                               AND div1.RecordDate = cst.fileDate
+                               AND div1.CountyName = cst.countyName
+WHERE tel.LeaseID IS NULL AND (_CreatedBy IS NULL AND _ModifiedBy IS NULL);
+
 
 SELECT COUNT(DISTINCT tel.recordID)
 FROM countyScansTitle.dbo.tblexportLog tel
@@ -201,6 +216,13 @@ SELECT
 	'Leases Mapped From DIV1',		-- dataEntryDescription
 	'not currently in use',			-- IncomingInspectionDescription
 	'not currently in use'			-- assignmentDescription
+
+-- Set Updated Records To StatusID = 90
+UPDATE tr
+SET tr.statusID = 90
+FROM countyScansTitle.dbo.tblrecord tr
+JOIN countyScansTitle.dbo.tblexportlog tel ON tr.recordID = tel.recordID
+WHERE tel.zipName = 'LND-6732(1)'
 
 
 -- INSERT into tblrecord for Category 2 records
@@ -564,9 +586,9 @@ SELECT
     NULL,											-- MIP, Default Value
     NULL,											-- HandWritten, Default Value
     GETDATE(),										-- _CreatedDateTime, Default Value
-    'NA\donald.massey',									-- _CreatedBy, Default Value
+    'NA\donald.massey',								-- _CreatedBy, Default Value
     GETDATE(),										-- _ModifiedDateTime, Default Value
-    'NA\donald.massey',									-- _ModifiedBy, Default Value
+    'NA\donald.massey',								-- _ModifiedBy, Default Value
     NULL,											-- causeNumber, Default Value
     NULL,											-- qcBatchID, Default Value
     NULL,											-- auditBatchID, Default Value
@@ -626,7 +648,7 @@ WHERE tel.LeaseID IS NULL;
 -- Why didn't these 600 get inserted into tblrecord?
 
 
-SELECT *
+SELECT COUNT(*)
 FROM countyScansTitle.dbo.tblrecord
 WHERE remarks = 'LND-6732(2)'
 
@@ -651,10 +673,68 @@ FROM countyScansTitle.dbo.tblrecord tr
 LEFT JOIN countyScansTitle.dbo.tblexportLog tel ON tel.recordID = tr.recordID
 WHERE countyid IS NULL
 
-SELECT *
-FROM [AUS2-DIV1-DDB01].[div1_daily].[dbo].[tblLegalLease] tll
-WHERE leaseid = 984304
 
+-- 1) Ky pulled up the image in Dev using an undeployed version of the App, I inquired on when it could be deployed for testing
+-- The inserted record pulls up but the image requires the new App to be deployed which won't happen till the week of 7/28/2025+
+
+-- 2) (Verify only intended records were modified) Returned 49 that weren't processed by the InstrumentTypeEnricher
+SELECT CONVERT(varchar, tr._CreatedDateTime, 23), CONVERT(varchar, tr._ModifiedDateTime, 23), *
+FROM countyScansTitle.dbo.tblrecord tr
+WHERE remarks LIKE '%LND-6732%' 
+--AND CONVERT(varchar, tr._CreatedDateTime, 23) != '2025-07-07'
+  AND CONVERT(varchar, tr._ModifiedDateTime, 23) != '2025-07-08'
+
+-- 3) (Verify records points to the correct image(s)) The Volume/Page, Record Number for the 7 records processed that day matched in the App
+SELECT tel.leaseid, *
+FROM countyScansTitle.dbo.tblrecord tr
+LEFT JOIN countyScansTitle.dbo.tblexportlog tel ON tel.recordID = tr.recordID
+WHERE CONVERT(varchar, tr._ModifiedDateTime, 23) = '2025-07-08'
+AND remarks NOT LIKE '%LND-6732%'
+
+-- 4) Verify records aren't produced from land-lease-producer to ES cache
+/*
+{
+  "query": {
+    "terms": {
+      "recordid": ["00038be6-cba5-4220-8f90-7dc24c6430e4","000a2fc5-faf8-449c-8c92-9f9c81544abd",
+                   "001d21d2-0e17-48fb-bb96-078602b771bc","001d6bb5-428f-4a61-9ee8-8018158f53aa",
+                   "00216cd5-4125-4e05-b6df-29056450bba2","0022b42c-829e-4b71-8644-b7cc61024f9e",
+                   "002c91c5-4e2b-4122-b928-d995b79232ed","0038cee5-ade9-4f0f-a45b-0e5de54d11f3",
+                   "003a2d2c-6e65-4f44-a0f1-6e2c0e73cebe","0040afe4-0a12-4d34-9428-ee19363ba8ef"]
+    }
+  }
+}
+*/
+
+-- 5) ch-lease-exporter
+-- Verify none of the inserted records were produced back into div1_daily.dbo.tblLegalLease
+SELECT tr.statusID, *
+FROM countyScansTitle.dbo.tblrecord tr
+JOIN countyScansTitle.dbo.tblexportLog tel ON tel.recordID = tr.recordID
+WHERE tel.LeaseID IN (SELECT LeaseID FROM [AUS2-DIV1-DDB01].[div1_daily].[dbo].[tblLegalLease] WHERE created BETWEEN '2025-07-01' AND '2025-07-23')
+AND tel.zipName LIKE '%LND-6732%'
+-- Can't test in Dev because DIV1 ingestion into implemented
+
+-- 6) land-lease-producer (There haven't been updates since before the inserts but land-lease-producer has been running)
+SELECT TOP 10 lease_id, created, updated
+FROM [DS9].[pres].[legal_lease]
+ORDER BY created DESC
+
+-- 7) ch-database-exports (All modified records are now set to statusID = 90)
+SELECT _CreatedBy, _CreatedDateTime, _ModifiedBy, _ModifiedDateTime, AreaAmount, AreaNotAvailable, auditBatchID, bookTypeID, causeNumber, Consideration, countyID, DelayRental, DepthsCoveredFrom, DepthsCoveredTo, DepthsCoveredType, DRRecordNumber, DRVolumePage, effectiveDate, exportDate, exported, ExportedToWeb, ExportedToWeb2, ExportedToWeb2Date, ExportedToWebDate, Extension, ExtensionBLM, ExtensionBonus, ExtensionLength, ExtensionState, ExtensionType, FAQAnsweredBy, FAQAnsweredDate, FAQDate, fileDate, fileExtension, fileType, gathererID, HandWritten, holding, inspectorNumber, instrumentDate, InstrumentTypeFull, instrumentTypeID, IsWebDoc, keyedDate, keyerComments, keyerNumber, LandDescriptionNotAvailable, manualAccept, manualReject, MIP, modifiedDate, MultipleLeasesForTract, needsRedaction, NoPriorReference, originalFileName, outsourcedDate, outsourceID, page, ParcelNumber, pendingDate, PoorImage, prevQCBID, qaReserved, qcBatchID, qcDate, reassignedTo, receivedDate, RecordDate, recordID, recordIsAssignment, recordIsCourthouse, recordIsLease, recordNumber, remarks, RentalAmount, RentalBonus, RoyaltyAmount, SiteId, sourceFilePath, stapled, stapleInspectorNumber, stapleQcDate, stateID, statusID, storageFilePath, supervisorComments, TermAvailable, TermLength, TermType, TotalPages, Url, volume
+                             FROM [countyScansTitle].[dbo].[tblrecord] WITH(NOLOCK)
+                             WHERE CountyID = {countyid}
+                             AND statusID in (4, 10, 16)
+                             AND _ModifiedDateTime >= '{first_date}'
+                             AND _ModifiedDateTime <= '{last_date}'
+
+-- 8/9) Edit a RecordIsLease recordID in the app and verify the land-lease-producer processes it
+-- Modified RecordID's through the GODMODE App to verify changes propagate downstream
 SELECT *
-FROM #LND_6732_div1_values
-WHERE leaseid = 984304
+FROM countyScansTitle.dbo.tblrecord tr
+JOIN countyScansTitle.dbo.tblexportLog tel ON tel.recordID = tr.recordID
+WHERE tr.recordID IN ('27ed6fdd-001d-4ead-85c5-8b13f245e720','cde94f11-3562-42f6-8cd9-79b7a6fea24d'
+				     ,'0e39d0a7-54ce-4a12-9eb2-badc99192252','3408eb25-1fcc-4e19-a00f-978c9a32b27f'
+				     ,'c6f75b56-77dc-42ac-a274-a5410451e786','6982d027-12df-4096-96e6-4b483ac1a300'
+				     ,'a54723de-b54b-42ea-b36a-e48047326850','1da20dd5-0316-4d51-b607-b1de973363c7'
+					 ,'be3e0cf8-b045-476c-a9a8-bb27e1f560f3','b9e44456-8842-44a1-b4b1-6daaefafd3a6')

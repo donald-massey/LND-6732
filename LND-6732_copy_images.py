@@ -13,22 +13,22 @@ from pebble import ProcessPool, ProcessExpired
 from utils import create_alchemy_engine, copy_table
 
 
-def create_leaseid_df():
+def create_leaseid_df(cred_dict=None):
     # Create the SQLAlchemy engine
-    engine = create_alchemy_engine()
+    engine = create_alchemy_engine(cred_dict)
 
     # TODO Change the query so it gathers from the DEST table if they don't exist in the new dest
     print(f"Start: Gathering LeaseIDs {datetime.now()}")
     query = ("""SELECT * 
-                FROM countyScansTitle.dbo.LND_6732_DEST_20250506 dest WITH(NOLOCK)
+                FROM countyScansTitle.dbo.LND_6732_DEST_20250717 dest WITH(NOLOCK)
                 WHERE NOT EXISTS (SELECT 1
-                                  FROM countyScansTitle.dbo.LND_6732_20250506 src WITH(NOLOCK)
+                                  FROM countyScansTitle.dbo.LND_6732_20250717 src WITH(NOLOCK)
                                   WHERE dest.recordID = src.recordID)
                 ORDER BY leaseid DESC;""")
 
     df = pd.read_sql(query, engine)
     # print(f"df.head():\n\n {df.head()}")
-    print(f"len(df): {len(df)}")
+    # print(f"len(df): {len(df)}")
     print(f"Complete: Gathering LeaseIDs {datetime.now()}")
 
     return df
@@ -87,7 +87,7 @@ def process_batch(batch):
 
         return_list.append(return_dict)
 
-        if str(counter)[-3:] == '000':
+        if str(counter)[-2:] == '00':
             end_time = datetime.now()
             elapsed = end_time - start_time
             print(f"end_time: {end_time}")
@@ -122,7 +122,7 @@ def create_batches_from_dataframe(
 
 
 
-def map_images(df_lease_ids, max_workers=7, max_timeout=None):
+def map_images(df_lease_ids, cred_dict=None, max_workers=7, max_timeout=None):
     # TODO Need to gather the dataset ID value by querying the S3 bucket, follow the same pattern to gather the
     """
     Process the dataframe using Pebble for multiprocessing.
@@ -154,7 +154,7 @@ def map_images(df_lease_ids, max_workers=7, max_timeout=None):
 
                  result = next(iterator)
                  df_results = pd.DataFrame(result)
-                 df_results.to_sql('LND_6732_20250506', create_alchemy_engine(), if_exists='append', index=False)
+                 df_results.to_sql('LND_6732_20250717', create_alchemy_engine(cred_dict), if_exists='append', index=False)
 
              except StopIteration:
                  break
@@ -191,15 +191,19 @@ if __name__ == "__main__":
     print(f"cstitle_username: {cstitle_username}")
     print(f"cstitle_password: {cstitle_password}")
 
-    try:
-        # print("Start: Copying Images To S3")
-        # df_lease_ids = create_leaseid_df()
-        # map_images(df_lease_ids, max_workers=8)
-        # print("Complete: Copying Images To S3")
+    cred_dict = {'cstitle_server': cstitle_server,
+                 'cstitle_username': cstitle_username,
+                 'cstitle_password': cstitle_password}
 
-        print("Start: Copy [countyScansTitle].[dbo].[LND_6732_tblS3Image_20250506] From Dev -> Prod")
-        copy_table(table_name='LND_6732_tblS3Image_20250506')
-        print("Complete: Copy [countyScansTitle].[dbo].[LND_6732_tblS3Image_20250506] From Dev -> Prod")
+    try:
+        print("Start: Copying Images To S3")
+        df_lease_ids = create_leaseid_df(cred_dict)
+        map_images(df_lease_ids, cred_dict, max_workers=8)
+        print("Complete: Copying Images To S3")
+
+        # print("Start: Copy [countyScansTitle].[dbo].[LND_6732_tblS3Image_20250717] From Dev -> Prod")
+        # copy_table(table_name='LND_6732_tblS3Image_20250717')
+        # print("Complete: Copy [countyScansTitle].[dbo].[LND_6732_tblS3Image_20250717] From Dev -> Prod")
     except Exception as e:
         print(f"Error: {e}")
         print(f"Traceback: {traceback.format_exc()}")

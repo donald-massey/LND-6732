@@ -2,7 +2,7 @@ import os
 import pandas as pd
 from sqlalchemy import create_engine
 
-# Add cred_dict here
+
 def copy_table(table_name=None, cred_dict=None):
     cstitle_username = cred_dict.get('cstitle_username')
     cstitle_password = cred_dict.get('cstitle_password')
@@ -35,14 +35,9 @@ def create_alchemy_engine(cred_dict, env='dev'):
     """
     Create a SQLAlchemy engine.
     """
-    if env.lower() == 'dev':
-        cstitle_server = cred_dict.get('cstitle_dev_server')
-        cstitle_username = cred_dict.get('cstitle_username')
-        cstitle_password = cred_dict.get('cstitle_password')
-    if env.lower() == 'prod':
-        cstitle_server = cred_dict.get('cstitle_prod_server')
-        cstitle_username = cred_dict.get('cstitle_username')
-        cstitle_password = cred_dict.get('cstitle_password')
+    cstitle_server = cred_dict.get('cstitle_server')
+    cstitle_username = cred_dict.get('cstitle_username')
+    cstitle_password = cred_dict.get('cstitle_password')
 
     try:
         connection_string = (

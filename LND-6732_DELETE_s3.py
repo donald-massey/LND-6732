@@ -28,13 +28,14 @@ def create_alchemy_engine():
         print(f"Error creating engine: {e}")
         raise
 
-def create_leaseid_df():
+
+def create_s3_path_df():
     # Create the SQLAlchemy engine
     engine = create_alchemy_engine()
 
     print(f"Start: Gathering LeaseIDs {datetime.now()}")
-    query = ("SELECT * FROM countyScansTitle.dbo.LND_6732_SRC_20250717 "
-             "ORDER BY leaseid DESC")
+    query = ("SELECT recordID, s3FilePath FROM countyScansTitle.dbo.LND_6732_tblS3Image_20250506 "
+             "WHERE recordID NOT IN (SELECT recordID FROM countyScansTitle.dbo.LND_6732_tblS3Image_20250506_test)")
 
     df = pd.read_sql(query, engine)
     # print(f"df.head():\n\n {df.head()}")
@@ -42,21 +43,9 @@ def create_leaseid_df():
 
     return df
 
-def get_page_count(s3, bucket_name, source_path):
-    response = s3.get_object(Bucket=bucket_name, Key=source_path)
-    # Read the PDF content as a stream
-    pdf_stream = BytesIO(response['Body'].read())
-    # Get page count using PyPDF2
-    try:
-        reader = PdfReader(pdf_stream)
-    except Exception as e:
-        print(f"Error reading PDF: {e}")
-        return 0
-    page_count = len(reader.pages)
-    return page_count
-
 
 def process_batch(batch):
+    response = None
     config = Config(
         retries={
             'max_attempts': 10,  # Maximum number of retry attempts
@@ -74,26 +63,25 @@ def process_batch(batch):
         contents = None
 
         try:
-            response = s3.list_objects_v2(Bucket='di-diml-platinum-prod', Prefix=row['package_id'])
-            contents = response['Contents']
+            # Need to repair the Prefix to match the S3 bucket structure
+            prefix = row['s3FilePath'].replace('s3://enverus-courthouse-prod-chd-plants/', '')
+            response = s3.delete_object(Bucket='enverus-courthouse-prod-chd-plants', Key=prefix)
+
+            if response['ResponseMetadata']['HTTPStatusCode'] != 204:
+                raise Exception(f"Failed to delete object: {row['s3FilePath']}")
         except Exception as e:
-            print(f"LeaseID: {row['leaseid']}; Error: {e}")
+            print(f"RecordID: {row['recordID']}; Error: {e}")
             print(f"Traceback: {traceback.format_exc()}")
 
-        if contents:
-            row['file_size'] = contents[0]['Size']
-            row['source_path'] = contents[0]['Key']
-            row['page_count'] = get_page_count(s3, bucket_name='di-diml-platinum-prod', source_path=contents[0]['Key'])
-            row['destination_path'] = ('s3://enverus-courthouse-prod-chd-plants' + '/' + row['state_countyname']
-                                + '/' + row['recordid'][0:4].lower() + '/' + row['recordid'].lower()
-                                + os.path.splitext(row['source_path'])[1])
-            row['status'] = 'processed'
+        if response['ResponseMetadata']['HTTPStatusCode'] == 204:
+            row['_ModifiedDateTime'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+            row['status'] = 'deleted'
             return_list.append(row)
         else:
             row['status'] = 's3 query failed'
             return_list.append(row)
 
-        if str(counter)[-2:] == '00':
+        if str(counter)[-3:] == '000':
             end_time = datetime.now()
             elapsed = end_time - start_time
             print(f"end_time: {end_time}")
@@ -105,7 +93,7 @@ def process_batch(batch):
 
 def create_batches_from_dataframe(
         df: pd.DataFrame,
-        batch_size: int = 1000
+        batch_size: int = 10000
 ) -> Generator[List[Dict[str, Any]], None, None]:
     """
     Convert a pandas DataFrame to dictionary format and yield batches of specified size.
@@ -157,7 +145,7 @@ def query_s3(df_lease_ids, max_workers=7, max_timeout=None):
              try:
                  result = next(iterator)
                  df_results = pd.DataFrame(result)
-                 df_results.to_sql('LND_6732_DEST_20250717', create_alchemy_engine(), if_exists='append', index=False)
+                 df_results.to_sql('LND_6732_tblS3Image_20250506_test', create_alchemy_engine(), if_exists='append', index=False)
 
              except StopIteration:
                  break
@@ -195,10 +183,10 @@ if __name__ == "__main__":
     print(f"cstitle_password: {cstitle_password}")
 
     try:
-        df_lease_ids = create_leaseid_df()
+        df_s3_filepaths = create_s3_path_df()
 
         print("Start: Querying S3")
-        query_s3(df_lease_ids, max_workers=8)
+        query_s3(df_s3_filepaths, max_workers=8)
         print("Complete: Querying S3")
     except Exception as e:
         print(f"Error: {e}")

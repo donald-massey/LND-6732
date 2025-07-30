@@ -18,7 +18,7 @@ GO
 SET XACT_ABORT ON;
 BEGIN TRAN;
 
--- Query to update tbllandDescription using LND_6732_tblS3Image_20250506
+-- Query to update tbllandDescription using LND_6732_tblS3Image_20250717
 INSERT INTO dbo.tblS3Image (
     recordID
    ,s3FilePath
@@ -34,7 +34,7 @@ SELECT
    ,fileSizeBytes
    ,_ModifiedDateTime
    ,_ModifiedBy
-FROM countyScansTitle.dbo.LND_6732_tblS3Image_20250506;
+FROM countyScansTitle.dbo.LND_6732_tblS3Image_20250717;
 
 
 -- Rollback the transaction (for testing purposes)
@@ -48,8 +48,8 @@ SELECT @@TRANCOUNT, XACT_STATE();
 
 
 -- These tables are used by LND-6732_query_s3.py, which updates this table with the S3 locations for the Lease images from DIV1
--- IF OBJECT_ID(N'countyScansTitle.dbo.LND_6732_SRC_20250506') IS NOT NULL
---	DROP TABLE countyScansTitle.dbo.LND_6732_SRC_20250506;
+--IF OBJECT_ID(N'countyScansTitle.dbo.LND_6732_SRC_20250717') IS NOT NULL
+--  DROP TABLE countyScansTitle.dbo.LND_6732_SRC_20250717;
 
 -- Count 2,081,043
 SELECT tel.leaseid, tel.recordid, CONCAT(LOWER(tls.StateAbbreviation), '/', LOWER(tlc.CountyName)) AS state_countyname, tlicr.package_id,
@@ -58,22 +58,31 @@ SELECT tel.leaseid, tel.recordid, CONCAT(LOWER(tls.StateAbbreviation), '/', LOWE
 0                                                                                                                          AS page_count,
 0                                                                                                                           AS file_size,
 '                                                                                                                           '  AS status
-INTO countyScansTitle.dbo.LND_6732_SRC_20250506
+INTO countyScansTitle.dbo.LND_6732_SRC_20250717_TEST
 FROM countyScansTitle.dbo.tblrecord tr
 LEFT JOIN countyScansTitle.dbo.tblexportLog tel ON tr.recordID = tel.recordID
 LEFT JOIN [AUS2-DIV1-DDB01].[div1_daily].[dbo].[tblLegalLease] tll ON tll.leaseID = tel.leaseID
 LEFT JOIN CS_Digital.dbo.tblLeaseIDxref tlicr ON tlicr.lease_id = tel.LeaseID
 LEFT JOIN countyScansTitle.dbo.tbllookupCounties tlc ON tr.countyID = tlc.CountyID
 LEFT JOIN countyScansTitle.dbo.tbllookupStates tls ON tr.stateID = tls.StateID
-WHERE CONVERT(varchar, tr.receivedDate, 23) = '2025-05-06'
-AND package_id IS NOT NULL
+LEFT JOIN countyScansTitle.dbo.tblS3Image tsi ON tsi.recordID = tel.recordID
+WHERE package_id IS NOT NULL AND tsi.recordID IS NULL
 ORDER BY tel.leaseid
 
+SELECT COUNT(*)
+FROM countyScansTitle.dbo.LND_6732_SRC_20250717
+WHERE recordID IN (SELECT recordID FROM countyScansTitle.dbo.tblS3Image)
+ORDER BY leaseID
 
---IF OBJECT_ID(N'countyScansTitle.dbo.LND_6732_DEST_20250506') IS NOT NULL
---	DROP TABLE countyScansTitle.dbo.LND_6732_DEST_20250506;
+SELECT recordID
+FROM countyScansTitle.dbo.tblS3Image
+WHERE recordID = 'd489a3ba-2d55-44f3-80b3-dd29a3447f42'
 
-CREATE TABLE [countyScansTitle].[dbo].[LND_6732_DEST_20250506](
+
+--IF OBJECT_ID(N'countyScansTitle.dbo.LND_6732_DEST_20250717') IS NOT NULL
+--  DROP TABLE countyScansTitle.dbo.LND_6732_DEST_20250717;
+
+CREATE TABLE [countyScansTitle].[dbo].[LND_6732_DEST_20250717](
 	[leaseid] [int] NULL,
 	[recordid] [varchar](36) NULL,
 	[state_countyname] [nvarchar](266) NOT NULL,
@@ -85,10 +94,10 @@ CREATE TABLE [countyScansTitle].[dbo].[LND_6732_DEST_20250506](
 	[status] [varchar](123) NOT NULL)
 
 
---IF OBJECT_ID(N'countyScansTitle.dbo.LND_6732_20250506') IS NOT NULL
---	DROP TABLE countyScansTitle.dbo.LND_6732_20250506;
+--IF OBJECT_ID(N'countyScansTitle.dbo.LND_6732_20250717') IS NOT NULL
+--  DROP TABLE countyScansTitle.dbo.LND_6732_20250717;
 
-CREATE TABLE [countyScansTitle].[dbo].[LND_6732_20250506](
+CREATE TABLE [countyScansTitle].[dbo].[LND_6732_20250717](
 	[recordID] [varchar](36) NOT NULL,
 	[s3FilePath] [varchar](300) NOT NULL,
 	[pageCount] [int] NULL,
@@ -97,32 +106,81 @@ CREATE TABLE [countyScansTitle].[dbo].[LND_6732_20250506](
 	[_ModifiedBy] [varchar](75) NULL,
 	[status] [varchar](75) NULL)
 
-
+SELECT COUNT(*) FROM countyScansTitle.dbo.LND_6732_DEST_20250717 WHERE status != 'processed';
+SELECT * FROM countyScansTitle.dbo.LND_6732_SRC_20250717
+SELECT * FROM countyScansTitle.dbo.LND_6732_DEST_20250717
 -- Used to reduce the table until the process was complete, this was due to issues with the expiring tokens
 /*
-DELETE FROM countyScansTitle.dbo.LND_6732_SRC_20250506
-WHERE EXISTS (
-    SELECT 1
-    FROM countyScansTitle.dbo.LND_6732_DEST_20250506
-    WHERE countyScansTitle.dbo.LND_6732_SRC_20250506.recordID = countyScansTitle.dbo.LND_6732_DEST_20250506.recordID
-);
-*/
-
-/*
-DELETE FROM countyScansTitle.dbo.LND_6732_DEST_20250506
+DELETE FROM countyScansTitle.dbo.LND_6732_DEST_20250717
 WHERE status != 'processed';
 */
 
 /*
-DELETE FROM countyScansTitle.dbo.LND_6732_SRC_20250506
-WHERE leaseid in (SELECT leaseid from countyScansTitle.dbo.LND_6732_DEST_20250506)
+DELETE FROM countyScansTitle.dbo.LND_6732_SRC_20250717
+WHERE EXISTS (
+    SELECT 1
+    FROM countyScansTitle.dbo.LND_6732_DEST_20250717
+    WHERE countyScansTitle.dbo.LND_6732_SRC_20250717.recordID = countyScansTitle.dbo.LND_6732_DEST_20250717.recordID
+);
 */
 
+
 -- Insert records from DestinationTable Back To SourceTable So The LND-6732_copy_images.py script can copy the files to the CHEA S3 bucket
-INSERT INTO countyScansTitle.dbo.LND_6732_SRC_20250506 (leaseid, recordid, state_countyname, package_id, source_path, destination_path, page_count, file_size, status)
+INSERT INTO countyScansTitle.dbo.LND_6732_SRC_20250717 (leaseid, recordid, state_countyname, package_id, source_path, destination_path, page_count, file_size, status)
 SELECT leaseid, recordid, state_countyname, package_id, source_path, destination_path, page_count, file_size, ''
-FROM countyScansTitle.dbo.LND_6732_DEST_20250506
+FROM countyScansTitle.dbo.LND_6732_DEST_20250717
 WHERE status != 'processed'
 
 
--- QA Section
+-- Remove Duplicates there's 15 
+SELECT leaseID
+FROM [countyScansTitle].[dbo].[LND_6732_DEST_20250717]
+GROUP BY leaseID
+HAVING COUNT(*) > 2
+
+
+-- Verify records exist, Woo
+
+SELECT *
+FROM countyScansTitle.dbo.LND_6732_DEST_20250717
+WHERE recordid = 'b440da2c-219f-419c-b069-b1144e732e0c'
+
+SELECT TOP 100 *
+FROM countyScansTitle.dbo.tblS3Image
+WHERE recordid = 'b440da2c-219f-419c-b069-b1144e732e0c'
+
+-- Promote Test Record To S3Image
+SELECT *
+FROM countyScansTitle.dbo.tblrecord tr
+JOIN countyScansTitle.dbo.tblexportlog tel ON tel.recordid = tr.recordid
+WHERE tr.recordid = 'b440da2c-219f-419c-b069-b1144e732e0c'
+
+
+
+SET XACT_ABORT ON;
+BEGIN TRAN;
+
+INSERT INTO [countyScansTitle].[dbo].[tblS3Image] (recordID, s3FilePath, pageCount, fileSizeBytes, _ModifiedDateTime, _ModifiedBy)
+VALUES ('b440da2c-219f-419c-b069-b1144e732e0c', 'enverus-courthouse-prod-chd-plants/ks/harper/b440/b440da2c-219f-419c-b069-b1144e732e0c.pdf', 2, 1269138, GETDATE(), 'LND-6732');
+
+SELECT *
+FROM countyScansTitle.dbo.tblS3Image
+WHERE recordID = 'b440da2c-219f-419c-b069-b1144e732e0c'
+
+-- Rollback the transaction (for testing purposes)
+--ROLLBACK TRAN;
+-- Uncomment the following line to commit the transaction
+COMMIT TRAN;
+
+-- Check transaction count and state
+SELECT @@TRANCOUNT, XACT_STATE();
+
+
+SELECT TOP 10 *
+FROM countyScansTitle.dbo.tblS3Image
+
+
+-- Compare this against the _CreatedDateTime + _ModifiedDateTime
+SELECT COUNT(*)
+FROM countyScansTitle.dbo.tblrecord tr
+WHERE remarks LIKE '%LND-6732%'
