@@ -22,7 +22,7 @@ def create_leaseid_df(cred_dict=None):
     query = ("""SELECT * 
                 FROM countyScansTitle.dbo.LND_6732_DEST_20250717 dest WITH(NOLOCK)
                 WHERE NOT EXISTS (SELECT 1
-                                  FROM countyScansTitle.dbo.LND_6732_20250717 src WITH(NOLOCK)
+                                  FROM countyScansTitle.dbo.LND_6732_tblS3Image_20250717 src WITH(NOLOCK)
                                   WHERE dest.recordID = src.recordID)
                 ORDER BY leaseid DESC;""")
 
@@ -154,7 +154,7 @@ def map_images(df_lease_ids, cred_dict=None, max_workers=7, max_timeout=None):
 
                  result = next(iterator)
                  df_results = pd.DataFrame(result)
-                 df_results.to_sql('LND_6732_20250717', create_alchemy_engine(cred_dict), if_exists='append', index=False)
+                 df_results.to_sql('LND_6732_tblS3Image_20250717', create_alchemy_engine(cred_dict), if_exists='append', index=False)
 
              except StopIteration:
                  break
@@ -182,28 +182,28 @@ if __name__ == "__main__":
 
     cstitle_username = os.getenv('cstitle_username')
     cstitle_password = os.getenv('cstitle_password')
-    if environ_var.lower() == 'dev':
-        cstitle_server = os.getenv('cstitle_dev_server')
-    elif environ_var.lower() == 'prod':
-        cstitle_server = os.getenv('cstitle_prod_server')
+    cstitle_dev_server = os.getenv('cstitle_dev_server')
+    cstitle_prod_server = os.getenv('cstitle_prod_server')
 
-    print(f"cstitle_server: {cstitle_server}")
     print(f"cstitle_username: {cstitle_username}")
     print(f"cstitle_password: {cstitle_password}")
+    print(f"cstitle_dev_server: {cstitle_dev_server}")
+    print(f"cstitle_prod_server: {cstitle_prod_server}")
 
-    cred_dict = {'cstitle_server': cstitle_server,
-                 'cstitle_username': cstitle_username,
-                 'cstitle_password': cstitle_password}
+    cred_dict = {'cstitle_username': cstitle_username,
+                 'cstitle_password': cstitle_password,
+                 'cstitle_dev_server': cstitle_dev_server,
+                 'cstitle_prod_server': cstitle_prod_server}
 
     try:
-        print("Start: Copying Images To S3")
-        df_lease_ids = create_leaseid_df(cred_dict)
-        map_images(df_lease_ids, cred_dict, max_workers=8)
-        print("Complete: Copying Images To S3")
+        # print("Start: Copying Images To S3")
+        # df_lease_ids = create_leaseid_df(cred_dict)
+        # map_images(df_lease_ids, cred_dict, max_workers=8)
+        # print("Complete: Copying Images To S3")
 
-        # print("Start: Copy [countyScansTitle].[dbo].[LND_6732_tblS3Image_20250717] From Dev -> Prod")
-        # copy_table(table_name='LND_6732_tblS3Image_20250717')
-        # print("Complete: Copy [countyScansTitle].[dbo].[LND_6732_tblS3Image_20250717] From Dev -> Prod")
+        print("Start: Copy [countyScansTitle].[dbo].[LND_6732_tblS3Image_20250717] From Dev -> Prod")
+        copy_table(table_name='LND_6732_tblS3Image_20250717', cred_dict=cred_dict)
+        print("Complete: Copy [countyScansTitle].[dbo].[LND_6732_tblS3Image_20250717] From Dev -> Prod")
     except Exception as e:
         print(f"Error: {e}")
         print(f"Traceback: {traceback.format_exc()}")

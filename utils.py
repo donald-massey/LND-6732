@@ -35,9 +35,10 @@ def create_alchemy_engine(cred_dict, env='dev'):
     """
     Create a SQLAlchemy engine.
     """
-    cstitle_server = cred_dict.get('cstitle_server')
-    cstitle_username = cred_dict.get('cstitle_username')
-    cstitle_password = cred_dict.get('cstitle_password')
+    if env.lower() == 'dev':
+        cstitle_server = cred_dict.get('cstitle_dev_server')
+        cstitle_username = cred_dict.get('cstitle_username')
+        cstitle_password = cred_dict.get('cstitle_password')
 
     try:
         connection_string = (
