@@ -516,6 +516,9 @@ WHERE tel.LeaseID IS NULL AND mcl.CourthouseTitleID IS NOT NULL;
 SELECT TOP 10 *
 FROM countyScansTitle.dbo.LND_6732_tblrecord
 
+IF OBJECT_ID(N'countyScansTitle.dbo.LND_6838_tblexportLog') IS NOT NULL
+	DROP TABLE countyScansTitle.dbo.LND_6838_tblexportLog;
+
 -- INSERT into tblexportlog for Category 2 records
 -- 2,118,373 Records
 SELECT
