@@ -196,14 +196,14 @@ if __name__ == "__main__":
                  'cstitle_prod_server': cstitle_prod_server}
 
     try:
-        # print("Start: Copying Images To S3")
-        # df_lease_ids = create_leaseid_df(cred_dict)
-        # map_images(df_lease_ids, cred_dict, max_workers=8)
-        # print("Complete: Copying Images To S3")
+        print("Start: Copying Images To S3")
+        df_lease_ids = create_leaseid_df(cred_dict)
+        map_images(df_lease_ids, cred_dict, max_workers=8)
+        print("Complete: Copying Images To S3")
 
-        print("Start: Copy [countyScansTitle].[dbo].[LND_6732_tblS3Image_20250717] From Dev -> Prod")
-        copy_table(table_name='LND_6732_tblS3Image_20250717', cred_dict=cred_dict)
-        print("Complete: Copy [countyScansTitle].[dbo].[LND_6732_tblS3Image_20250717] From Dev -> Prod")
+        print("Start: Copy [countyScansTitle].[dbo].[LND_6732_DEST_20250717] From Dev -> Prod")
+        copy_table(table_name='LND_6732_DEST_20250717', cred_dict=cred_dict)
+        print("Complete: Copy [countyScansTitle].[dbo].[LND_6732_DEST_20250717] From Dev -> Prod")
     except Exception as e:
         print(f"Error: {e}")
         print(f"Traceback: {traceback.format_exc()}")

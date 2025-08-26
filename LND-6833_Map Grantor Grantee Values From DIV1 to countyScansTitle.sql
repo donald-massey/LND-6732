@@ -59,7 +59,7 @@ WITH tblRecord AS (
 		tel.LeaseID
 	FROM countyScansTitle.dbo.tblrecord tr
 	LEFT JOIN countyScansTitle.dbo.tblExportLog tel ON tel.recordID = tr.recordID
-	WHERE tr.remarks LIKE '%LND-6732%'
+	WHERE tr.remarks = 'LND-6732(2)'
 ),
 -- 3,911,697 Records
 GrantorData AS (

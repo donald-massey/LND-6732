@@ -115,7 +115,7 @@ IF OBJECT_ID(N'countyScansTitle.dbo.LND_6838_tbllandDescription') IS NOT NULL
 
 -- Base table to generate a landDescriptionID and then use to join back the values parsed by the brief-legals-parser
 DECLARE @currentDateTime DATETIME = GETDATE();
-SELECT LOWER(NEWID()) AS landDescriptionID
+SELECT DISTINCT LOWER(NEWID()) AS landDescriptionID
 	  ,LOWER(tr.recordID) AS recordID  -- From tblRecord
 	  ,tr.countyID AS CountyID  -- From tblRecord
 	  ,NULLIF(CAST('' AS CHAR(300)),'') AS Subdivision  -- Parsed From BriefLegals
@@ -160,16 +160,21 @@ FROM [AUS2-DIV1-DDB01].[div1_daily].[dbo].[tblLegalLease] tll
 JOIN [AUS2-DIV1-DDB01].[div1_daily].[dbo].[tblLegalLeaseDocumentMapping] tlldm ON tlldm.leaseid = tll.leaseid
 JOIN [AUS2-DIV1-DDB01].[div1_daily].[dbo].[tblleaseAbstractMapping] tlam ON tlam.mappingid = tlldm.legalleasedocumentmappingid
 JOIN [AUS2-DIV1-DDB01].[div1_daily].[dbo].[tblAbstract] ta ON ta.abstractid = tlam.abstractid
-JOIN countyScansTitle.dbo.tblExportLog tel ON tll.leaseid = tel.LeaseID
-JOIN countyScansTitle.dbo.tblrecord tr ON tel.recordID = tr.recordID
+-- Change this so it uses the newly created staging tables
+JOIN countyScansTitle.dbo.LND_6732_tblexportLog tel ON tel.LeaseID = tll.leaseid
+JOIN countyScansTitle.dbo.LND_6732_tblrecord tr ON tr.recordID = tel.recordID
 JOIN countyScansTitle.dbo.tbllookupStates tls ON tls.StateID = tr.stateID
 JOIN countyScansTitle.dbo.tbllookupCounties tlc ON tlc.CountyID = tr.countyID
-WHERE tr.remarks LIKE '%LND-6732%'
-AND tlam.descriptions != ''
+WHERE tlam.descriptions != ''
 AND tlam.descriptions IS NOT NULL 
 AND tlam.descriptions NOT LIKE '%ALL%'
 AND tlam.descriptions NOT LIKE '%BELOW%'
-AND tlam.descriptions NOT LIKE '%REMARKS%';
+AND tlam.descriptions NOT LIKE '%REMARKS%'
+AND tls.StateName NOT IN ('PA','WV','OH');
+
+
+SELECT *
+FROM countyScansTitle.dbo.LND_6838_tbllandDescription
 
 ALTER TABLE countyScansTitle.dbo.LND_6838_tbllandDescription
 ALTER COLUMN _CreatedBy VARCHAR(75);
@@ -736,3 +741,4 @@ and AcreageByTract = ''
 and QuarterCalls = ''
 group by BriefLegal
 order by count(*) desc
+

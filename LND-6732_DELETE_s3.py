@@ -34,11 +34,19 @@ def create_s3_path_df():
     engine = create_alchemy_engine()
 
     print(f"Start: Gathering LeaseIDs {datetime.now()}")
-    query = ("SELECT recordID, s3FilePath FROM countyScansTitle.dbo.LND_6732_tblS3Image_20250506 "
-             "WHERE recordID NOT IN (SELECT recordID FROM countyScansTitle.dbo.LND_6732_tblS3Image_20250506_test)")
+    query = ("""SELECT 
+                    recordID, 
+                    leaseid, 
+                CASE 
+                    WHEN LEFT(destination_path, 5) = 's3://' THEN destination_path 
+                    ELSE CONCAT('s3://', destination_path) 
+                END AS s3FilePath
+                FROM LND_6732_s3_cleanup;
+            """)
 
     df = pd.read_sql(query, engine)
-    # print(f"df.head():\n\n {df.head()}")
+    print(f"df.head():\n\n {df.head()}")
+    print(f"df.count():\n\n {df.count()}")
     print(f"Complete: Gathering LeaseIDs {datetime.now()}")
 
     return df
@@ -145,7 +153,7 @@ def query_s3(df_lease_ids, max_workers=7, max_timeout=None):
              try:
                  result = next(iterator)
                  df_results = pd.DataFrame(result)
-                 df_results.to_sql('LND_6732_tblS3Image_20250506_test', create_alchemy_engine(), if_exists='append', index=False)
+                 df_results.to_sql('LND_6732_s3_cleanup_20250821', create_alchemy_engine(), if_exists='append', index=False)
 
              except StopIteration:
                  break

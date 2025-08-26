@@ -39,7 +39,7 @@ FROM countyScansTitle.dbo.tblrecord tr
 JOIN countyScansTitle.dbo.tblExportLog tel ON tr.recordID = tel.recordID
 JOIN [AUS2-DIV1-DDB01].[div1_daily].[dbo].[tblLegalLease] tll ON tel.LeaseID = tll.LeaseID
 WHERE tll.deedVol IS NOT NULL AND tll.deedVol != '' AND tll.deedPg != '' AND tll.deedPg IS NOT NULL
-AND tr.remarks LIKE '%LND-6732%';
+AND tr.remarks = 'LND-6732(2)';
 
 -- Rollback the transaction (for testing purposes)
 --ROLLBACK TRAN;

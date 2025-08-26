@@ -27,14 +27,20 @@ INSERT INTO dbo.tblS3Image (
    ,_ModifiedDateTime
    ,_ModifiedBy
 )
-SELECT 
-    recordID
-   ,s3FilePath
-   ,pageCount
-   ,fileSizeBytes
-   ,_ModifiedDateTime
-   ,_ModifiedBy
-FROM countyScansTitle.dbo.LND_6732_tblS3Image_20250717;
+SELECT
+    tel.recordID AS recordID
+   ,CASE
+        WHEN LEFT(dest.destination_path, 5) = 's3://' THEN dest.destination_path
+        ELSE CONCAT('s3://', dest.destination_path)
+    END AS s3FilePath
+   ,dest.page_count AS pageCount
+   ,dest.file_size AS fileSizeBytes
+   ,GETDATE() AS _ModifiedDateTime
+   ,'LND-6732(2)' AS _ModifiedBy
+SELECT COUNT(*)
+FROM countyScansTitle.dbo.LND_6732_DEST_20250717 dest
+JOIN countyScansTitle.dbo.tblexportLog tel ON tel.LeaseID = dest.leaseid
+WHERE tel.zipName = 'LND-6732(2)'
 
 
 -- Rollback the transaction (for testing purposes)
@@ -52,13 +58,16 @@ SELECT @@TRANCOUNT, XACT_STATE();
 --  DROP TABLE countyScansTitle.dbo.LND_6732_SRC_20250717;
 
 -- Count 2,081,043
-SELECT tel.leaseid, tel.recordid, CONCAT(LOWER(tls.StateAbbreviation), '/', LOWER(tlc.CountyName)) AS state_countyname, tlicr.package_id,
-'                                                                                                                       ' AS source_path,
-'                                                                                                                  ' AS destination_path,
-0                                                                                                                          AS page_count,
-0                                                                                                                           AS file_size,
-'                                                                                                                           '  AS status
-INTO countyScansTitle.dbo.LND_6732_SRC_20250717_TEST
+SELECT tel.leaseid
+, tel.recordid
+, CONCAT(LOWER(tls.StateAbbreviation), '/', LOWER(tlc.CountyName)) AS state_countyname
+, tlicr.package_id
+, '                                                                                                                       ' AS source_path
+, '                                                                                                                  ' AS destination_path
+, 0                                                                                                                          AS page_count
+, 0                                                                                                                           AS file_size
+, '                                                                                                                           '  AS status
+INTO countyScansTitle.dbo.LND_6732_SRC_20250717
 FROM countyScansTitle.dbo.tblrecord tr
 LEFT JOIN countyScansTitle.dbo.tblexportLog tel ON tr.recordID = tel.recordID
 LEFT JOIN [AUS2-DIV1-DDB01].[div1_daily].[dbo].[tblLegalLease] tll ON tll.leaseID = tel.leaseID
@@ -93,6 +102,8 @@ CREATE TABLE [countyScansTitle].[dbo].[LND_6732_DEST_20250717](
 	[file_size] [int] NOT NULL,
 	[status] [varchar](123) NOT NULL)
 
+CREATE UNIQUE CLUSTERED INDEX IX_LND_6732_DEST_20250717_leaseid
+ON [countyScansTitle].[dbo].[LND_6732_DEST_20250717] (leaseid);
 
 --IF OBJECT_ID(N'countyScansTitle.dbo.LND_6732_20250717') IS NOT NULL
 --  DROP TABLE countyScansTitle.dbo.LND_6732_20250717;
@@ -105,6 +116,12 @@ CREATE TABLE [countyScansTitle].[dbo].[LND_6732_tblS3Image_20250717](
 	[_ModifiedDateTime] [datetime] NULL,
 	[_ModifiedBy] [varchar](75) NULL,
 	[status] [varchar](75) NULL)
+
+-- Don't include these in the tblS3Image update statement
+SELECT *
+FROM [countyScansTitle].[dbo].[LND_6732_tblS3Image_20250717] s
+JOIN [countyScansTitle].[dbo].[LND_6732_DEST_20250717] d ON s.recordID = d.recordid
+WHERE pageCount = 0
 
 SELECT COUNT(*) FROM countyScansTitle.dbo.LND_6732_DEST_20250717 WHERE status != 'processed';
 SELECT * FROM countyScansTitle.dbo.LND_6732_SRC_20250717
@@ -180,7 +197,27 @@ SELECT TOP 10 *
 FROM countyScansTitle.dbo.tblS3Image
 
 
--- Compare this against the _CreatedDateTime + _ModifiedDateTime
-SELECT COUNT(*)
-FROM countyScansTitle.dbo.tblrecord tr
-WHERE remarks LIKE '%LND-6732%'
+
+WITH RankedPages AS (
+    SELECT 
+        *,  -- selects all columns from the source table
+        ROW_NUMBER() OVER (PARTITION BY page_count ORDER BY [page_count]) AS rn
+    FROM 
+        [countyScansTitle].[dbo].[LND_6732_DEST_20250717]
+    WHERE 
+        page_count IN (1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+)
+SELECT tr.recordNumber, *
+FROM RankedPages rp
+JOIN countyScansTitle.dbo.tblrecord tr ON tr.recordID = rp.recordid
+WHERE rn <= 5
+ORDER BY page_count, rn;
+
+SELECT TOP 10 *
+FROM countyScansTitle.dbo.tblS3Image
+WHERE _ModifiedBy != 'cs_updates'
+AND _ModifiedBy != 's3_upload_objects_backfill'
+AND _ModifiedBy != 's3_list_objects_backfill'
+AND _ModifiedBy != 'Tyler.Jordan'
+AND _ModifiedBy != 'TylerJordan'
+AND _ModifiedBy != 'NA\chad.hutcherson'
